@@ -13,6 +13,11 @@ public static partial class ContentQueries
         + "WHEN 'LUGAR' THEN 'place' WHEN 'ORGANIZACAO' THEN 'organization' END FROM unnest(@markers::text[]) AS t(m) ON CONFLICT DO NOTHING RETURNING marker) "
         + "SELECT marker FROM won UNION SELECT marker FROM content.marker_in_use WHERE batch_id = @batch AND marker = ANY(@markers::text[])";
 
+    /// <summary>Holds for the batch the markers given that no batch holds, and returns them: a marker held already, by this batch or another, is not among them.</summary>
+    internal const string InsertMarkersWon =
+        "INSERT INTO content.marker_in_use (domain_id, batch_id, marker, kind) SELECT @domain, @batch, m, CASE split_part(m, '_', 1) WHEN 'PESSOA' THEN 'person' "
+        + "WHEN 'LUGAR' THEN 'place' WHEN 'ORGANIZACAO' THEN 'organization' END FROM unnest(@markers::text[]) AS t(m) ON CONFLICT DO NOTHING RETURNING marker";
+
     /// <summary>The batch of the item, whose conversation holds its markers.</summary>
     internal const string ReadItemBatch = "SELECT batch_id FROM content.item_text WHERE id = @item";
 

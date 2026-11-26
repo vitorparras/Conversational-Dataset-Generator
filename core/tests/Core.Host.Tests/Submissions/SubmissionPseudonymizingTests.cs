@@ -7,7 +7,6 @@ using Core.Host.Tests.Analysis;
 using Core.Ingestion;
 using Core.Ingestion.Pseudonymizing;
 using Core.Persistence.Content;
-using Core.Persistence.Content.Sealing;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -36,7 +35,7 @@ public sealed partial class SubmissionPseudonymizingTests
 
         var outcome = await world.SubmitAsync(Conversation(("ZQXANA", "ZQX-FAKE-PERSON-1 viu ZQX-FAKE-PERSON-2"), ("ZQXBETO", "e ZQX-FAKE-PERSON-2 saiu")));
 
-        var texts = await OpenedAsync(world, ContentColumns.PseudonymizedText, "item_text");
+        var texts = await SealedColumns.OpenedAsync(world, ContentColumns.PseudonymizedText, "item_text");
         var (first, second) = (MarkersIn(texts[0])[0], MarkersIn(texts[0])[1]);
         Assert.Equal((SubmissionKind.Done, "2,2,5"), (outcome.Kind, Assert.Single(await world.StoredAsync(Rows))));
         Assert.Equal([$"{first}-1 viu {second}-2", $"e {second}-2 saiu"], texts);
@@ -82,7 +81,7 @@ public sealed partial class SubmissionPseudonymizingTests
 
         var markers = await world.StoredAsync(MarkersOfTheItems);
         var (ana, beto) = (MarkerOf(markers, 0), MarkerOf(markers, 1));
-        var maps = await OpenedAsync(world, ContentColumns.Entries, "reversal_map");
+        var maps = await SealedColumns.OpenedAsync(world, ContentColumns.Entries, "reversal_map");
         Assert.Equal([$"0:{ana}:true", $"1:{beto}:true", $"2:{ana}:true"], markers);
         Assert.NotEqual(ana, beto);
         Assert.Equal([true, true, true], [maps[0].Contains("ZQXANA", StringComparison.Ordinal), maps[1].Contains("ZQXBETO", StringComparison.Ordinal), maps[2].Contains(ana, StringComparison.Ordinal)]);
@@ -97,7 +96,7 @@ public sealed partial class SubmissionPseudonymizingTests
 
         var markers = await world.StoredAsync(MarkersOfTheItems);
         var (author, beto) = (MarkerOf(markers, 0), MarkerOf(markers, 1, but: MarkerOf(markers, 0)));
-        Assert.Equal($"falei com {author}-1", (await OpenedAsync(world, ContentColumns.PseudonymizedText, "item_text"))[1]);
+        Assert.Equal($"falei com {author}-1", (await SealedColumns.OpenedAsync(world, ContentColumns.PseudonymizedText, "item_text"))[1]);
         Assert.Equal([$"0:{author}:true", .. Ordered($"1:{author}:true", $"1:{beto}:true")], markers);
     }
 
@@ -108,7 +107,7 @@ public sealed partial class SubmissionPseudonymizingTests
 
         _ = await world.SubmitAsync(Conversation(("ZQX-FAKE-PERSON-1", "ZQX-FAKE-NOTHING"), ("ZQXBETO", "falei com ZQX-FAKE-PERSON-2")));
 
-        var texts = await OpenedAsync(world, ContentColumns.PseudonymizedText, "item_text");
+        var texts = await SealedColumns.OpenedAsync(world, ContentColumns.PseudonymizedText, "item_text");
         var markers = await world.StoredAsync(MarkersOfTheItems);
         var (author, nickname) = (MarkerOf(markers, 0), MarkersIn(texts[1])[0]);
         Assert.Equal($"falei com {nickname}-2", texts[1]);
@@ -123,7 +122,7 @@ public sealed partial class SubmissionPseudonymizingTests
 
         _ = await world.SubmitAsync(Conversation(("ZQXANA", "ZQX-FAKE-PERSON-3 chegou"), ("ZQXBETO", "outro ZQX-FAKE-PERSON-3 saiu")));
 
-        var texts = await OpenedAsync(world, ContentColumns.PseudonymizedText, "item_text");
+        var texts = await SealedColumns.OpenedAsync(world, ContentColumns.PseudonymizedText, "item_text");
         var homonym = MarkersIn(texts[0])[0];
         Assert.Equal([$"{homonym}-3 chegou", $"outro {homonym}-3 saiu"], texts);
     }
@@ -151,16 +150,6 @@ public sealed partial class SubmissionPseudonymizingTests
                 Swap = new PseudonymSwap(new CancellingBoundaries(cancelling), (elsewhere, known) => new ConversationMarkers(new MarkerDraw(), elsewhere, known)),
             };
         return new SubmissionService(intake, world.Batches, world.DataSource, NullLogger.Instance);
-    }
-
-    /// <summary>The sealed column given of every row of the table, opened with the key of its row, in the order of the items.</summary>
-    private static async Task<string[]> OpenedAsync(SubmissionWorld world, ProtectedColumn column, string table)
-    {
-        var order = table == "item_text" ? "id" : "item_id";
-        var rows = await world.StoredAsync(
-            $"SELECT encode({column.Name}, 'base64') || ',' || dek_epoch || ',' || encode(dek_wrapped, 'base64') FROM content.{table} ORDER BY {order}");
-        return [.. rows.Select(row => row.Split(',')).Select(parts => world.Content.Open(
-            column, SubmissionWorld.Domain, Convert.FromBase64String(parts[0]), new ContentKey(int.Parse(parts[1], CultureInfo.InvariantCulture), Convert.FromBase64String(parts[2]))))];
     }
 
     [GeneratedRegex("(PESSOA|LUGAR|ORGANIZACAO)_[0-9]{8}")]

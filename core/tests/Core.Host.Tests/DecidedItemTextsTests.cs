@@ -44,7 +44,7 @@ public sealed class DecidedItemTextsTests
 
     [Fact]
     public void AnItemWhoseDestinationsWereNeverDecidedIsNotRerun() =>
-        Assert.Null(DecidedItemTexts.Rerun(new SanitizationRerun(new Sanitizer(CompositionRoot.StepsOf(), new TextBoundaries())), new RerunSource(Text, null, Text, null)));
+        Assert.Null(DecidedItemTexts.Rerun(new SanitizationRerun(new Sanitizer(CompositionRoot.StepsOf(), new TextBoundaries())), CompositionRoot.SwapOf(), new RerunSource(Text, null, Text, null)));
 
     [Fact]
     public async Task NoMaterialIsADefect()

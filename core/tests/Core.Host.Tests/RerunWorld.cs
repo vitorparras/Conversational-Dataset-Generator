@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Core.Boundary.Contracts;
 using Core.Boundary.Text;
+using Core.Host.Submissions;
 using Core.Host.Tests.Submissions;
 using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content.Rerun;
@@ -49,10 +50,10 @@ internal sealed class RerunWorld : IAsyncDisposable
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [SuppressMessage("Reliability", "CA2000", Justification = "The world takes the submissions and lets go of them with itself.")]
-    internal static async Task<RerunWorld> CreateAsync(IRecognizer? recognizer = null)
+    internal static async Task<RerunWorld> CreateAsync(IRecognizer? recognizer = null, SubmissionRequest? request = null)
     {
         var submissions = await SubmissionWorld.CreateAsync(recognizer: recognizer, sanitizer: new Sanitizer(Before, new TextBoundaries()));
-        var outcome = await submissions.SubmitAsync(SubmissionWorld.Request());
+        var outcome = await submissions.SubmitAsync(request ?? SubmissionWorld.Request());
         await submissions.AcceptReviewedAsync(outcome.Batch!.Value);
         return new RerunWorld(submissions, outcome.Batch.Value);
     }
@@ -82,7 +83,10 @@ internal sealed class RerunWorld : IAsyncDisposable
     /// <summary>Starts the worker of the rerun given, with the content opened by the function given or, by default, as the host opens it.</summary>
     internal Task StartAsync(SanitizationRerun rerun, Func<CancellationToken, Task<RerunService.Access>>? open = null)
     {
-        var parts = new RerunService.Parts(new DomainListing(Submissions.DataSource), new SanitizationReruns(Submissions.DataSource, Clock), rerun, open ?? OpenAsync);
+        var parts = new RerunService.Parts(new DomainListing(Submissions.DataSource), new SanitizationReruns(Submissions.DataSource, Clock), rerun, open ?? OpenAsync)
+        {
+            Swap = CompositionRoot.SwapOf(),
+        };
         worker = new RerunService(parts, Clock, loggers);
         return worker.StartAsync(Token);
     }

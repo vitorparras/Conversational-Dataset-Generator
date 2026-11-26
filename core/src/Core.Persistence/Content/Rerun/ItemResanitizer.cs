@@ -13,10 +13,10 @@ namespace Core.Persistence.Content.Rerun;
 
 /// <summary>
 /// The rerun of one held item over its raw text (issue 97), in one serializable transaction: the item is read, the domain reruns it, and the event item_resanitized, the conclusion in the queue and
-/// the new sanitization are written together or not at all. An identical text is not written again; an emptied item, one whose key was declared lost or one never decided is refused with
+/// the new sanitization are written together or not at all, with the new pseudonymized text and map of an item pseudonymized. An identical text is not written again; an emptied item, one whose key was declared lost or one never decided is refused with
 /// the reason; a transaction the database stopped for another gives the item back without spending a try, and a label the installation did not load spends one.
 /// </summary>
-public sealed class ItemResanitizer
+public sealed partial class ItemResanitizer
 {
     private const NpgsqlDbType IntegerArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Integer);
     private const NpgsqlDbType TextArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Text);
@@ -85,13 +85,13 @@ public sealed class ItemResanitizer
                 : (new RerunResult(RerunOutcome.Failed), null);
         }
 
-        if (work.Rerun(Opened(stored, hold.DomainId)) is not { } produced)
+        if (await DrawnAsync(scope, (hold, work.Rerun), Opened(stored, hold), cancellationToken).ConfigureAwait(false) is not { } produced)
         {
             return await FinishAsync(scope, work, (new RerunResult(RerunOutcome.Refused, Refusal: RerunRefusal.Undecided), null), cancellationToken).ConfigureAwait(false);
         }
 
         var statement = StatementOf(produced, stored.Version);
-        Func<Task>? write = statement is null && produced.Markers is null ? null : () => WriteAsync(scope, statement, (hold, produced, stored.Key), cancellationToken);
+        Func<Task>? write = statement is null && produced.Map is null ? null : () => WriteAsync(scope, statement, (hold, produced, stored), cancellationToken);
         return await FinishAsync(scope, work, (new RerunResult(produced.Identical ? RerunOutcome.Identical : RerunOutcome.Replaced), write), cancellationToken).ConfigureAwait(false);
     }
 
@@ -143,23 +143,30 @@ public sealed class ItemResanitizer
         var at = 0;
         T? Next<T>()
             where T : class => row.IsDBNull(at++) ? null : (T)row.GetValue(at - 1);
-        return new StoredItem(Next<byte[]>()!, Next<byte[]>(), Next<byte[]>(), Next<string>(), new ContentKey(row.GetInt32(at++), Next<byte[]>()!));
+        var item = new StoredItem(Next<byte[]>()!, Next<byte[]>(), Next<byte[]>(), Next<string>(), new ContentKey(row.GetInt32(at++), Next<byte[]>()!));
+        var entries = Next<byte[]>();
+        return item with { Entries = entries, MapKey = entries is null ? null : new ContentKey(row.GetInt32(at), (byte[])row.GetValue(at + 1)) };
     }
 
-    private RerunSource Opened(StoredItem stored, int domainId)
+    private RerunSource Opened(StoredItem stored, RerunHold hold)
     {
-        string? Open(ProtectedColumn column, byte[]? sealedValue) => sealedValue is null ? null : protectedContent.Open(column, domainId, sealedValue, stored.Key);
+        string? Open(ProtectedColumn column, byte[]? sealedValue) => sealedValue is null ? null : protectedContent.Open(column, hold.DomainId, sealedValue, stored.Key);
         var occurrences = Open(ContentColumns.Occurrences, stored.Occurrences);
         var raw = Open(ContentColumns.RawText, stored.Raw)!;
-        return new RerunSource(raw, occurrences is null ? null : OccurrenceJson.Read(occurrences), Open(ContentColumns.SanitizedText, stored.Sanitized), stored.Version);
+        return new RerunSource(raw, occurrences is null ? null : OccurrenceJson.Read(occurrences), Open(ContentColumns.SanitizedText, stored.Sanitized), stored.Version)
+        {
+            ItemId = hold.ItemId,
+            Map = stored.Entries is { } entries ? MapEntryJson.Read(protectedContent.Open(ContentColumns.Entries, hold.DomainId, entries, stored.MapKey!)) : null,
+        };
     }
 
-    private async Task WriteAsync(CustodyScope scope, string? statement, (RerunHold Hold, Resanitized Produced, ContentKey Key) change, CancellationToken cancellationToken)
+    private async Task WriteAsync(CustodyScope scope, string? statement, (RerunHold Hold, Resanitized Produced, StoredItem Stored) change, CancellationToken cancellationToken)
     {
-        var (hold, produced, key) = change;
-        if (produced.Markers is { } markers)
+        var (hold, produced, stored) = change;
+        if (produced.Map is { } map)
         {
-            await KeepMarkersAsync(scope, hold, markers, cancellationToken).ConfigureAwait(false);
+            await KeepMarkersAsync(scope, hold, HeldOf(map), cancellationToken).ConfigureAwait(false);
+            await RemapAsync(scope, hold, (map, stored.MapKey ?? throw new InvalidOperationException("The rerun gave a map to an item that holds none.")), cancellationToken).ConfigureAwait(false);
         }
 
         if (statement is null)
@@ -167,13 +174,15 @@ public sealed class ItemResanitizer
             return;
         }
 
-        byte[] Sealed(ProtectedColumn column, string text) => protectedContent.Reseal(column, hold.DomainId, key, text).Envelope.ToArray();
+        byte[] Sealed(ProtectedColumn column, string text) => protectedContent.Reseal(column, hold.DomainId, stored.Key, text).Envelope.ToArray();
+        var replaced = statement == ContentQueries.CloseItemResanitization;
         Bound[] values =
         [
             new("domain", NpgsqlDbType.Integer, hold.DomainId), new("id", NpgsqlDbType.Bigint, hold.ItemId), new("version", NpgsqlDbType.Text, produced.Version),
             new("steps", NpgsqlDbType.Text, produced.Steps), new("trail", NpgsqlDbType.Bytea, Sealed(ContentColumns.SanitizationTrail, produced.Trail)),
             new("counts", IntegerArray, produced.Counts.ToArray()), new("untreated", IntegerArray, produced.Untreated.ToArray()),
-            new("sanitized", NpgsqlDbType.Bytea, statement == ContentQueries.CloseItemResanitization ? Sealed(ContentColumns.SanitizedText, produced.Text) : null),
+            new("sanitized", NpgsqlDbType.Bytea, replaced ? Sealed(ContentColumns.SanitizedText, produced.Text) : null),
+            new("pseudonymized", NpgsqlDbType.Bytea, replaced && produced.Pseudonymized is { } swapped ? Sealed(ContentColumns.PseudonymizedText, swapped) : null),
         ];
         _ = await ScalarAsync(scope, (statement, values), cancellationToken).ConfigureAwait(false);
     }
@@ -185,8 +194,7 @@ public sealed class ItemResanitizer
     {
         string[] names = [.. markers.Select(marker => marker.Marker)];
         Bound item = new("item", NpgsqlDbType.Bigint, hold.ItemId);
-        Bound[] ofItem = [item];
-        var batch = (long)(await ScalarAsync(scope, (ContentQueries.ReadItemBatch, ofItem), cancellationToken).ConfigureAwait(false))!;
+        var batch = await BatchOfAsync(scope, hold.ItemId, cancellationToken).ConfigureAwait(false);
         Bound[] held = [new("domain", NpgsqlDbType.Integer, hold.DomainId), new("markers", TextArray, names)];
         Bound[] inBatch = [.. held, new("batch", NpgsqlDbType.Bigint, batch)];
         _ = await ScalarAsync(scope, (ContentQueries.InsertMarkersInUse, inBatch), cancellationToken).ConfigureAwait(false);
@@ -196,6 +204,11 @@ public sealed class ItemResanitizer
         _ = await ScalarAsync(scope, (ContentQueries.RemoveItemMarkersGone, gone), cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>What the item holds, sealed, with the key of its text.</summary>
-    private sealed record StoredItem(byte[] Raw, byte[]? Occurrences, byte[]? Sanitized, string? Version, ContentKey Key);
+    /// <summary>What the item holds, sealed, with the key of its text, and the entries of its map, sealed, with their key, none when the item is not pseudonymized.</summary>
+    private sealed record StoredItem(byte[] Raw, byte[]? Occurrences, byte[]? Sanitized, string? Version, ContentKey Key)
+    {
+        public byte[]? Entries { get; init; }
+
+        public ContentKey? MapKey { get; init; }
+    }
 }

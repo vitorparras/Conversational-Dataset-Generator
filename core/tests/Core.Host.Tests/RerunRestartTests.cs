@@ -51,7 +51,7 @@ public sealed class RerunRestartTests
         var steps = CompositionRoot.StepsOf();
         var asked = await queue.RequestAsync(new RerunRequest(SubmissionWorld.Domain, SubmissionWorld.Person, steps.Version, RerunWorld.Listed(steps)), cancellationToken);
         var first = await queue.TakeAsync(SubmissionWorld.Domain, steps.Version, cancellationToken) ?? throw new InvalidOperationException("No item was queued.");
-        _ = await new ItemResanitizer(source, world.Submissions.Content, past).ResanitizeAsync(first, held => DecidedItemTexts.Rerun(RerunScreensWorld.InForce, held), cancellationToken);
+        _ = await new ItemResanitizer(source, world.Submissions.Content, past).ResanitizeAsync(first, held => DecidedItemTexts.Rerun(RerunScreensWorld.InForce, CompositionRoot.SwapOf(), held), cancellationToken);
         var second = await queue.TakeAsync(SubmissionWorld.Domain, steps.Version, cancellationToken) ?? throw new InvalidOperationException("No second item was queued.");
         var curator = await CuratorAsync(world);
         var emptied = await new ContentEmptier(source).EmptyAsync(

@@ -64,15 +64,22 @@ public static partial class ContentQueries
         "UPDATE content.sanitization_rerun_item SET state = 'done', result = @result::text, refusal = @refusal::text, concluded_at = @now::timestamptz, hold_until = NULL "
         + "WHERE id = @entry AND state = 'held' AND hold_until = @held::timestamptz RETURNING id";
 
-    /// <summary>What the rerun reads of an item not emptied: the sealed raw text, occurrences and sanitized text, the version, and the key wrapped with its epoch.</summary>
+    /// <summary>
+    /// What the rerun reads of an item not emptied: the sealed raw text, occurrences and sanitized text, the version, and the key wrapped with its epoch, then the sealed entries of its
+    /// map not emptied and their key, none when the item is not pseudonymized.
+    /// </summary>
     internal const string ReadResanitizationSource =
-        "SELECT raw_text, occurrences, sanitized_text, sanitization_version, dek_epoch, dek_wrapped FROM content.item_text WHERE id = @id AND emptied_at IS NULL";
+        "SELECT i.raw_text, i.occurrences, i.sanitized_text, i.sanitization_version, i.dek_epoch, i.dek_wrapped, m.entries, m.dek_epoch, m.dek_wrapped FROM content.item_text i "
+        + "LEFT JOIN content.reversal_map m ON m.item_id = i.id AND m.emptied_at IS NULL WHERE i.id = @id AND i.emptied_at IS NULL";
 
-    /// <summary>Writes the new sanitization of an item not emptied, its version once per domain; the database lets it through only with the rerun in the same transaction.</summary>
+    /// <summary>
+    /// Writes the new sanitization of an item not emptied, its version once per domain, and its new pseudonymized text when it has one; the database lets it through only with the rerun
+    /// in the same transaction.
+    /// </summary>
     internal const string CloseItemResanitization =
         "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL "
         + "ON CONFLICT (version, domain_id) DO NOTHING) UPDATE content.item_text SET sanitized_text = @sanitized, sanitization_version = @version, sanitization_trail = @trail, "
-        + "sanitization_counts = @counts, sanitization_untreated = @untreated WHERE id = @id AND emptied_at IS NULL";
+        + "sanitization_counts = @counts, sanitization_untreated = @untreated, pseudonymized_text = coalesce(@pseudonymized, pseudonymized_text) WHERE id = @id AND emptied_at IS NULL";
 
     /// <summary>As <see cref="CloseItemResanitization"/>, keeping the sanitized text, which the rerun produced again as it was.</summary>
     internal const string CloseItemRecount =

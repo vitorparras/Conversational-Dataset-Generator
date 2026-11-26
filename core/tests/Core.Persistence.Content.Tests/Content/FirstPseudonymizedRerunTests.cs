@@ -1,0 +1,100 @@
+using Core.Persistence.Content;
+using Core.Persistence.Content.Rerun;
+using Core.Persistence.Content.Writing;
+using Core.Persistence.Tests.Fixtures;
+
+namespace Core.Persistence.Tests.Content;
+
+/// <summary>
+/// The first pseudonymized text of an item stored before the coreference, through the rerun (issue 102, F3): the item that holds no map is given the raw texts of its batch, gets its
+/// pseudonymized text and a map of its own in the transaction of the rerun, and its markers are won for its batch; two such items of one batch never share a marker, the second being
+/// drawn again without it; an item refused because an occurrence has no pair keeps no pseudonymized text, is counted with the reason and is queued again by a new request.
+/// </summary>
+[Trait("Category", "Database")]
+public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
+{
+    private const string Sanitized = "texto sanitizado antigo zqx";
+    private const string NewText = "texto sanitizado de novo zqx";
+
+    private readonly RerunDatabase database;
+
+    public FirstPseudonymizedRerunTests(RerunDatabase database)
+    {
+        this.database = database;
+    }
+
+    private static CancellationToken Token => TestContext.Current.CancellationToken;
+
+    [DatabaseFact]
+    public async Task ItemWithoutPseudonymizedGetsItsFirstOne()
+    {
+        var rerun = await database.CaseAsync();
+        var marker = PseudonymizedTexts.Draw(1)[0];
+        var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+        var seen = new List<RerunSource>();
+
+        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), First(_ => marker, seen.Add), Token);
+
+        Assert.Equal(RerunOutcome.Replaced, result.Outcome);
+        Assert.Equal((PseudonymizedTexts.PseudonymizedOf([marker]), NewText), (await rerun.PseudonymizedTextAsync(item), await rerun.SanitizedAsync(item)));
+        Assert.Equal(("1,1", $"{marker}:false|{marker}"), (await rerun.MapsOfAsync(item), await rerun.MarkersOfAsync(item)));
+        var source = Assert.Single(seen);
+        Assert.Equal([RerunCase.Raw], source.Batch);
+        Assert.Equal((0, true), (source.Position, source.Map is null));
+    }
+
+    [DatabaseFact]
+    public async Task OldItemsOfABatchNeverShareAMarker()
+    {
+        var rerun = await database.CaseAsync();
+        var markers = PseudonymizedTexts.Draw(2);
+        var (shared, own) = (markers[0], markers[1]);
+        var first = await rerun.ItemAsync(Sanitized);
+        var second = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+        var seen = new List<RerunSource>();
+        var drawing = First(source => source.Taken.Contains(shared) ? own : shared, seen.Add);
+
+        _ = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), drawing, Token);
+        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), drawing, Token);
+
+        Assert.Equal(RerunOutcome.Replaced, result.Outcome);
+        Assert.Equal(($"{shared}:false|{Joined(shared, own)}", $"{own}:false|{Joined(shared, own)}"), (await rerun.MarkersOfAsync(first), await rerun.MarkersOfAsync(second)));
+        Assert.Equal(PseudonymizedTexts.PseudonymizedOf([own]), await rerun.PseudonymizedTextAsync(second));
+        Assert.Equal([(0, false), (1, false), (1, true)], seen.Select(source => (source.Position, source.Taken.Contains(shared))));
+    }
+
+    [DatabaseFact]
+    public async Task OldItemWithAnOccurrenceWithoutPairIsRefusedWithTheReason()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        var requested = await rerun.RequestAsync();
+
+        var result = await rerun.Resanitizer.ResanitizeAsync(
+            await rerun.TakenAsync(), (_, _) => Task.FromResult(new RerunAnswer(null, RerunRefusal.PseudonymWithoutPair)), Token);
+
+        Assert.Equal((RerunOutcome.Refused, RerunRefusal.PseudonymWithoutPair), (result.Outcome, result.Refusal));
+        Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.PseudonymWithoutPair)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
+        Assert.Equal(((string?)null, Sanitized, "0,0"), (await rerun.PseudonymizedTextAsync(item), await rerun.SanitizedAsync(item), await rerun.MapsOfAsync(item)));
+        var again = await rerun.RequestAsync(RerunCase.LaterSteps);
+        Assert.Equal((RerunOutcome.Queued, 1L), (again.Outcome, (await rerun.ProgressAsync(again.RerunId!.Value)).Queued));
+    }
+
+    /// <summary>
+    /// The rerun to <see cref="NewText"/> that gives the item its first pseudonymized text, with the one marker the function picks for what it is given, keeping each source given.
+    /// </summary>
+    private static Func<RerunSource, Resanitized> First(Func<RerunSource, string> marker, Action<RerunSource> seen) => source =>
+    {
+        seen(source);
+        var picked = marker(source);
+        return RerunCase.Rerunning(NewText)(source) with
+        {
+            Pseudonymized = PseudonymizedTexts.PseudonymizedOf([picked]),
+            Map = [new NewMapEntry(picked, PseudonymizedTexts.OriginalOf(picked), false, OccurrenceDestination.Pseudonymize)],
+        };
+    };
+
+    private static string Joined(params string[] values) => string.Join(',', values.Order(StringComparer.Ordinal));
+}

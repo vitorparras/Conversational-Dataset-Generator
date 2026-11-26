@@ -72,6 +72,11 @@ public static partial class ContentQueries
         "SELECT i.raw_text, i.occurrences, i.sanitized_text, i.sanitization_version, i.dek_epoch, i.dek_wrapped, m.entries, m.dek_epoch, m.dek_wrapped FROM content.item_text i "
         + "LEFT JOIN content.reversal_map m ON m.item_id = i.id AND m.emptied_at IS NULL WHERE i.id = @id AND i.emptied_at IS NULL";
 
+    /// <summary>The items of the batch of an item, not emptied, in the order they came in: the id, the sealed raw text and its key, for the groups of an item that holds no map.</summary>
+    internal const string ReadBatchRawTexts =
+        "SELECT o.id, o.raw_text, o.dek_epoch, o.dek_wrapped FROM content.item_text i JOIN content.item_text o ON o.batch_id = i.batch_id AND o.domain_id = i.domain_id "
+        + "WHERE i.id = @id AND o.emptied_at IS NULL ORDER BY o.id";
+
     /// <summary>
     /// Writes the new sanitization of an item not emptied, its version once per domain, and its new pseudonymized text when it has one; the database lets it through only with the rerun
     /// in the same transaction.
@@ -81,11 +86,11 @@ public static partial class ContentQueries
         + "ON CONFLICT (version, domain_id) DO NOTHING) UPDATE content.item_text SET sanitized_text = @sanitized, sanitization_version = @version, sanitization_trail = @trail, "
         + "sanitization_counts = @counts, sanitization_untreated = @untreated, pseudonymized_text = coalesce(@pseudonymized, pseudonymized_text) WHERE id = @id AND emptied_at IS NULL";
 
-    /// <summary>As <see cref="CloseItemResanitization"/>, keeping the sanitized text, which the rerun produced again as it was.</summary>
+    /// <summary>As <see cref="CloseItemResanitization"/>, keeping the sanitized text, which the rerun produced again as it was; the first pseudonymized text of an item is written with it.</summary>
     internal const string CloseItemRecount =
         "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL "
         + "ON CONFLICT (version, domain_id) DO NOTHING) UPDATE content.item_text SET sanitization_version = @version, sanitization_trail = @trail, "
-        + "sanitization_counts = @counts, sanitization_untreated = @untreated WHERE id = @id AND emptied_at IS NULL";
+        + "sanitization_counts = @counts, sanitization_untreated = @untreated, pseudonymized_text = coalesce(@pseudonymized, pseudonymized_text) WHERE id = @id AND emptied_at IS NULL";
 
     /// <summary>How many items of the accepted batches, not emptied, each version holds, the most recent first and the items with none last.</summary>
     internal const string ReadRerunSituation =

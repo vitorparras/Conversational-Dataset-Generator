@@ -125,6 +125,15 @@ internal sealed class RerunCase
         (await new ProtectedContentReader(application, custody.Content, new CustodyChain(application)).ReadAsync(
             new ContentRead(CustodyAuthor.System, ContentColumns.SanitizedText, DomainId, item), TestContext.Current.CancellationToken)).Text;
 
+    /// <summary>The pseudonymized text of the item, read by the reader of production; none when it has none.</summary>
+    public async Task<string?> PseudonymizedTextAsync(long item) =>
+        (await new ProtectedContentReader(application, custody.Content, new CustodyChain(application)).ReadAsync(
+            new ContentRead(CustodyAuthor.System, ContentColumns.PseudonymizedText, DomainId, item), TestContext.Current.CancellationToken)).Text;
+
+    /// <summary>How many maps of the item are not emptied, then how many it ever had, read as the owner.</summary>
+    public Task<string> MapsOfAsync(long item) => OwnerTextAsync(
+        "SELECT count(*) FILTER (WHERE emptied_at IS NULL) || ',' || count(*) FROM content.reversal_map WHERE item_id = @item", item);
+
     /// <summary>The version the detail of the batch names, read by the counts of production.</summary>
     public async Task<string?> VersionAsync() =>
         (await new BatchCounts(application).ReadAsync(DomainId, DomainId, TestContext.Current.CancellationToken)).SanitizationVersion;

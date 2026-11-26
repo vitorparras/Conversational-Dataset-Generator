@@ -18,6 +18,14 @@ public sealed record RerunSource(string Raw, IReadOnlyList<ItemOccurrence>? Occu
     /// <summary>The markers another batch holds, met by the draws before this one; a marker new to the item is none of them.</summary>
     public IReadOnlySet<string> Taken { get; init; } = new HashSet<string>(StringComparer.Ordinal);
 
+    /// <summary>
+    /// The raw texts of the items of its batch not emptied, in the order they came in, for the groups of an item that holds no map; null when it holds one or was never decided.
+    /// </summary>
+    public IReadOnlyList<string>? Batch { get; init; }
+
+    /// <summary>The position of the item among the texts of <see cref="Batch"/>.</summary>
+    public int Position { get; init; }
+
     /// <summary>The version and how many occurrences; never a text.</summary>
     public override string ToString() => $"RerunSource {{ StoredVersion = {StoredVersion}, Occurrences = {Occurrences?.Count} }}";
 }

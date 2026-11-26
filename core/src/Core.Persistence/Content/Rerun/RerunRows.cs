@@ -12,7 +12,7 @@ namespace Core.Persistence.Content.Rerun;
 /// <summary>What the queue and the rerun share: statements bound by name, rows read whole, the events of concluded items, and a hold given back or spent.</summary>
 internal static class RerunRows
 {
-    private static readonly string[] Refusals = ["emptied", "key_lost", "failed", "undecided"];
+    private static readonly string[] Refusals = ["emptied", "key_lost", "failed", "undecided", "pseudonym_without_pair"];
 
     /// <summary>The name the queue keeps for the refusal, and back; the database accepts no other.</summary>
     internal static string NameOf(RerunRefusal refusal) => Refusals[(int)refusal];

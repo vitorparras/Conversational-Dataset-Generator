@@ -76,7 +76,7 @@ public sealed class SubmissionCollisionTests
     public async Task DiagKinds()
     {
         var odd = new List<string>();
-        for (var round = 0; round < 6; round++)
+        for (var round = 0; round < 10; round++)
         {
             await using var world = await SubmissionWorld.CreateAsync();
             var outcomes = await Task.WhenAll(Enumerable.Range(0, Simultaneous).Select(at => Task.Run(() => world.SubmitAsync(Distinct(at)), TestContext.Current.CancellationToken)));
@@ -84,7 +84,8 @@ public sealed class SubmissionCollisionTests
             odd.Add($"r{round} kinds " + string.Join(',', outcomes.Select(o => o.Kind)));
         }
 
-        Assert.Equal(["x"], [.. odd, .. SubmissionStoring.Seen]);
+        Assert.Fail("error: DIAG " + string.Join(" | ", [.. odd, .. SubmissionStoring.Seen]).Replace("
+", " ", StringComparison.Ordinal));
     }
 
     [DatabaseFact]

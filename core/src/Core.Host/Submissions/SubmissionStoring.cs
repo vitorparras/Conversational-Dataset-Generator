@@ -101,7 +101,7 @@ internal static class SubmissionStoring
         }
         catch (Exception failure) when (failure is InvalidOperationException or NpgsqlException)
         {
-            Seen.Add(failure is Npgsql.PostgresException pg ? $"PG {pg.SqlState} {pg.MessageText} at {pg.TableName}/{pg.ConstraintName}" : $"{failure.GetType().Name}: {failure.Message}");
+            Seen.Add(failure is PostgresException pg ? $"PG {pg.SqlState} {pg.MessageText} at {pg.TableName}/{pg.ConstraintName}" : $"{failure.GetType().Name}: {failure.Message}");
             return Keeping.WriteFailed;
         }
     }

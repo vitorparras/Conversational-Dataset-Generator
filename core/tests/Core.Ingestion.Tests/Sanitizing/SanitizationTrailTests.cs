@@ -99,7 +99,7 @@ public sealed class SanitizationTrailTests
 
         var sanitized = Sanitized(raw, Credential(6, 10), Pseudonymized(14, 18));
 
-        var pseudonym = Assert.Single(sanitized.Pseudonyms);
+        var pseudonym = Assert.Single(sanitized.Pseudonyms).Occurrence;
         var back = sanitized.Trail.Back(pseudonym.Start, pseudonym.End);
         Assert.Equal((true, 14, 18), Resolved(back));
         Assert.Equal("Wvkt", Cut(raw, back.Start, back.End));
@@ -114,7 +114,7 @@ public sealed class SanitizationTrailTests
 
         var sanitized = Sanitized(raw, Data(4, 7), Pseudonymized(12, 16));
 
-        var pseudonym = Assert.Single(sanitized.Pseudonyms);
+        var pseudonym = Assert.Single(sanitized.Pseudonyms).Occurrence;
         Assert.Equal("\U0001F600e\u0301 [dado] \U0001F468\u200D\U0001F469 Wvkt", sanitized.Text);
         Assert.Equal((16, 19), (sanitized.Trail.RawLength, sanitized.Trail.SanitizedLength));
         Assert.Equal((15, 19), (pseudonym.Start, pseudonym.End));

@@ -1,4 +1,5 @@
 using Core.Boundary.Contracts;
+using Core.Ingestion.Deciding;
 
 namespace Core.Ingestion.Sanitizing;
 
@@ -23,8 +24,8 @@ public sealed record SanitizedText
     /// <summary>What each step changed, in the order the steps ran, a step that changed nothing included.</summary>
     public IReadOnlyList<StepReport> Report { get; internal init; } = [];
 
-    /// <summary>The pseudonymized occurrences, in the positions of the sanitized text, for the pseudonymization to replace.</summary>
-    public IReadOnlyList<Occurrence> Pseudonyms { get; internal init; } = [];
+    /// <summary>The pseudonymized occurrences, in the positions of the sanitized text and with their group of coreference, for the pseudonymization to replace.</summary>
+    public IReadOnlyList<DecidedOccurrence> Pseudonyms { get; internal init; } = [];
 
     /// <summary>The version and the count of each step; never the text nor a position.</summary>
     public override string ToString() => $"SanitizedText {{ Version = {Version}, Steps = {string.Join(", ", Report.Select(step => $"{step.Name}: {step.Count}"))} }}";

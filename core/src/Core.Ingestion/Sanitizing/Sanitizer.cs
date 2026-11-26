@@ -60,7 +60,7 @@ public sealed class Sanitizer
             Order = steps.Order,
             Trail = new SanitizationTrail(rawLength, trail),
             Report = report,
-            Pseudonyms = [.. occurrences.Where(occurrence => occurrence.Destination == Destination.Pseudonymize).Select(occurrence => occurrence.Occurrence)],
+            Pseudonyms = [.. occurrences.Where(occurrence => occurrence.Destination == Destination.Pseudonymize)],
         });
     }
 

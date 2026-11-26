@@ -17,11 +17,11 @@ domínios diferentes, e a [decisão 0006](../decisoes/0006-dominios-coexistem.md
 mesma instalação precisamente para que se possa compará-los — não para que se ligue uma pessoa de um
 ao outro por acidente.
 
-**O escopo é a conversa** ([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). Cada
-item tem os seus rótulos, e um rótulo nunca se repete em outra conversa; nas formas sem fio de
-conversa, cada item vale como uma. Ligar conversas exige saber que dois nomes são a mesma pessoa, e
-o material só traz o nome salvo por quem exportou. A análise entre conversas fica como melhoria
-futura.
+**O escopo é a conversa** ([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md)). As
+mensagens da mesma conversa compartilham os rótulos, e um rótulo nunca se repete em outra
+conversa; nas formas sem fio de conversa, cada item vale como uma. Ligar conversas exige saber
+que dois nomes são a mesma pessoa, e o material só traz o nome salvo por quem exportou. A análise
+entre conversas fica como melhoria futura.
 
 ## Critérios de aceitação
 

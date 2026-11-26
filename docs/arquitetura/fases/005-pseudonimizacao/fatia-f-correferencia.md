@@ -30,12 +30,12 @@ a F3 liga a troca à submissão e à reexecução da fase 4. Até ela, nenhum it
 
 **Primeiro pseudonimizado.** A F3 o dá, em segundo plano, pela fila e pelo trabalhador da reexecução
 da fase 4 (`RerunService`), a todo item gravado antes dela. O serviço é chamado sobre o bruto só
-pelo grupo; cada ocorrência guardada (`OccurrenceJson`, linha 37) toma o grupo da de mesmo texto,
+pelo grupo, num pedido por lote e sem autor, que o item antigo não guarda: nenhuma menção dele liga
+ao autor. Cada ocorrência guardada (`OccurrenceJson`, linha 37) toma o grupo da de mesmo texto,
 posição e tipo. Item com ocorrência sem par é recusado, fica sem pseudonimizado e fora da anotação,
 e o acompanhamento da fila o conta com o motivo; um pedido novo o põe na fila outra vez. Nenhum
 destino é decidido de novo, com uma exceção declarada (`SanitizationRerun`, linhas 5 a 8): o
-`Preserve` de lugar dos itens anteriores à fatia A vira `Pseudonymize` sem que o serviço o decida
-([0056](../../../decisoes/0056-toponimo-vira-marcador.md)).
+`Preserve` de lugar dos itens anteriores à fatia A vira `Pseudonymize` sem que o serviço o decida ([0056](../../../decisoes/0056-toponimo-vira-marcador.md)).
 
 ## Critérios de aceite
 

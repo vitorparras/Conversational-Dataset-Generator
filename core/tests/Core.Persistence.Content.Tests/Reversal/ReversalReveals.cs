@@ -11,6 +11,9 @@ internal static class ReversalReveals
 
     public const string CountOfStep = "SELECT count(*) FROM public.custody_event WHERE step = @step";
 
+    /// <summary>How many events of the step that conflicts once reached the chain, the one refused included.</summary>
+    public const string ConflictAttempts = "SELECT last_value FROM public.zqx_chain_conflicts";
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     /// <summary>The act of the curator of the world, the person 3, who asked, on the request of the domain 1.</summary>
@@ -37,6 +40,17 @@ internal static class ReversalReveals
             "CREATE FUNCTION public.zqx_chain_refuses() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
             + "BEGIN RAISE EXCEPTION 'broken' USING ERRCODE = 'CE002'; END $f$; "
             + $"CREATE TRIGGER zqx_chain_refuses BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = '{step}') EXECUTE FUNCTION public.zqx_chain_refuses()");
+
+    /// <summary>
+    /// Makes the chain refuse the first event of the step given as a conflict with another writer, as the server does when two take the same link, and take the ones after it; the
+    /// sequence counts the events of the step that reached the chain, because a sequence is not undone with the transaction refused.
+    /// </summary>
+    public static Task ConflictOnceInTheChainAsync(ContentWorld world, string step) =>
+        world.Database.ExecuteAsSuperuserAsync(
+            "CREATE SEQUENCE public.zqx_chain_conflicts; GRANT SELECT ON SEQUENCE public.zqx_chain_conflicts TO PUBLIC; "
+            + "CREATE FUNCTION public.zqx_chain_conflicts() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
+            + "BEGIN IF nextval('public.zqx_chain_conflicts') = 1 THEN RAISE EXCEPTION 'conflict' USING ERRCODE = '40001'; END IF; RETURN NEW; END $f$; "
+            + $"CREATE TRIGGER zqx_chain_conflicts BEFORE INSERT ON public.custody_event FOR EACH ROW WHEN (NEW.step = '{step}') EXECUTE FUNCTION public.zqx_chain_conflicts()");
 
     /// <summary>
     /// Holds the map of every item locked, so that no reading of it goes through until the hold is let go: a revelation that opened the map before its event was committed would

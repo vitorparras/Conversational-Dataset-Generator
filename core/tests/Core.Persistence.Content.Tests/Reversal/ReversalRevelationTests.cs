@@ -219,6 +219,20 @@ public sealed class ReversalRevelationTests
     }
 
     [DatabaseFact]
+    public async Task ConflictOnRecordingTheReadingOfTheMapIsTriedAgainAndRevealsTheIdentity()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var authorized = await AuthorizedAsync(world);
+        await ConflictOnceInTheChainAsync(world, "reversal_entries_read");
+
+        var revealed = await world.ReversalRevelations.RevealAsync(ByWhoAsked(authorized.Request), Token);
+
+        Assert.Equal((ReversalOutcome.Recorded, PseudonymizedTexts.OriginalOf(authorized.Marker)), (revealed.Outcome, revealed.Identity));
+        Assert.Equal(2L, (long)(await world.ScalarAsync(ConflictAttempts))!);
+        Assert.Equal((1L, 1L), (await CountOfStepAsync(world, "reversal_revealed"), await CountOfStepAsync(world, "reversal_entries_read")));
+    }
+
+    [DatabaseFact]
     public async Task MapGoneAfterTheRevelationIsRecordedIsDeniedAsEmptied()
     {
         await using var world = await ContentWorld.CreateAsync();

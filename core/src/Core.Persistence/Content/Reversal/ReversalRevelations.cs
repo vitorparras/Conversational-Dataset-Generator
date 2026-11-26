@@ -103,10 +103,27 @@ public sealed class ReversalRevelations
             return new ReversalRevelation(ReversalOutcome.Emptied) { RevealedAt = at };
         }
 
-        var read = await reader.ReadAsync(new ContentRead(CustodyAuthor.Person(act.PersonId), ContentColumns.Entries, act.DomainId, mapId), cancellationToken).ConfigureAwait(false);
+        var read = await ReadMapAsync(new ContentRead(CustodyAuthor.Person(act.PersonId), ContentColumns.Entries, act.DomainId, mapId), cancellationToken).ConfigureAwait(false);
         return read.Outcome == ContentReadOutcome.Read
             ? new ReversalRevelation(ReversalOutcome.Recorded) { RevealedAt = at, Identity = MapEntryJson.OriginalOf(read.Text!, request.Marker) }
             : new ReversalRevelation(ReversalOutcome.NotRecorded) { RevealedAt = at, Refusal = read.Refusal };
+    }
+
+    /// <summary>
+    /// Reads the map, again while the chain refuses the reading as a conflict with another writer, up to three times: the revelation is committed already, and a conflict is
+    /// transient; a chain broken is not tried again.
+    /// </summary>
+    private async Task<ContentReadResult> ReadMapAsync(ContentRead map, CancellationToken cancellationToken)
+    {
+        var tries = 0;
+        ContentReadResult read;
+        do
+        {
+            read = await reader.ReadAsync(map, cancellationToken).ConfigureAwait(false);
+        }
+        while (read.Refusal?.Outcome == CustodyOutcome.Conflict && ++tries < ReversalAttempts.Attempts);
+
+        return read;
     }
 
     private async Task<T> InDomainAsync<T>(int domainId, Func<CustodyScope, Task<T>> read, CancellationToken cancellationToken)

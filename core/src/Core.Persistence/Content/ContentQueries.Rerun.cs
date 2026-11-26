@@ -9,13 +9,13 @@ public static partial class ContentQueries
         + "WHERE EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.rerun_id = r.id AND q.state <> 'done') ORDER BY r.id DESC LIMIT 1";
 
     /// <summary>
-    /// One item a request to the version would queue: of an accepted batch, not emptied, of another version or stored before the coreference, decided and with no map, which the
-    /// version in force also gives its first pseudonymized text (issue 102, F3), and in no open request, not even concluded in one.
+    /// One item a request to the version would queue: of an accepted batch, not emptied, of another version or stored before the coreference, with no map, which the version in
+    /// force also gives its first pseudonymized text (issue 102, F3), and in no open request, not even concluded in one; no sealed column is looked into.
     /// </summary>
     internal const string ReadRerunPending =
         "SELECT i.id FROM content.item_text i JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id "
-        + "WHERE b.state = 'accepted' AND i.emptied_at IS NULL AND (i.sanitization_version IS DISTINCT FROM @version OR (i.occurrences IS NOT NULL "
-        + "AND NOT EXISTS (SELECT 1 FROM content.reversal_map m WHERE m.item_id = i.id AND m.emptied_at IS NULL))) "
+        + "WHERE b.state = 'accepted' AND i.emptied_at IS NULL AND (i.sanitization_version IS DISTINCT FROM @version "
+        + "OR NOT EXISTS (SELECT 1 FROM content.reversal_map m WHERE m.item_id = i.id AND m.emptied_at IS NULL)) "
         + "AND NOT EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.item_id = i.id "
         + "AND EXISTS (SELECT 1 FROM content.sanitization_rerun_item o WHERE o.rerun_id = q.rerun_id AND o.state <> 'done')) LIMIT 1";
 
@@ -31,8 +31,8 @@ public static partial class ContentQueries
         + "target AS (SELECT id FROM rerun UNION ALL SELECT @rerun::bigint WHERE @rerun::bigint IS NOT NULL), "
         + "queued AS (INSERT INTO content.sanitization_rerun_item (domain_id, rerun_id, item_id) SELECT @domain, target.id, i.id FROM target, content.item_text i "
         + "JOIN content.ingestion_batch b ON b.id = i.batch_id AND b.domain_id = i.domain_id WHERE b.state = 'accepted' AND i.emptied_at IS NULL "
-        + "AND (i.sanitization_version IS DISTINCT FROM @version OR (i.occurrences IS NOT NULL AND NOT EXISTS (SELECT 1 FROM content.reversal_map m "
-        + "WHERE m.item_id = i.id AND m.emptied_at IS NULL))) AND NOT EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.item_id = i.id "
+        + "AND (i.sanitization_version IS DISTINCT FROM @version OR NOT EXISTS (SELECT 1 FROM content.reversal_map m "
+        + "WHERE m.item_id = i.id AND m.emptied_at IS NULL)) AND NOT EXISTS (SELECT 1 FROM content.sanitization_rerun_item q WHERE q.item_id = i.id "
         + "AND EXISTS (SELECT 1 FROM content.sanitization_rerun_item o WHERE o.rerun_id = q.rerun_id AND o.state <> 'done')) "
         + "RETURNING rerun_id) SELECT id FROM target";
 

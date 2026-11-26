@@ -78,6 +78,7 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
         Assert.Equal((RerunOutcome.Queued, RerunOutcome.Identical), (requested.Outcome, result.Outcome));
         Assert.Equal((PseudonymizedTexts.PseudonymizedOf([marker]), "1,1"), (await rerun.PseudonymizedTextAsync(item), await rerun.MapsOfAsync(item)));
         Assert.Equal(ItemTexts.Version, await rerun.VersionAsync());
+        Assert.Equal(new RerunResult(RerunOutcome.NothingToRerun), await rerun.RequestAsync(ItemTexts.Steps));
     }
 
     [DatabaseFact]

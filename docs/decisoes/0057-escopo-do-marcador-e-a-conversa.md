@@ -52,7 +52,7 @@ recebia um marcador em cada mensagem, contra o primeiro critério do
 conversa inteira. O resto não muda: nenhum marcador em outra conversa ou domínio, nem mapa alheio.
 Limite: os itens gravados antes da F3 não compartilham marcador entre si, porque não guardam o
 autor e recebem o primeiro pseudonimizado cada um no seu pedido, que leva os brutos do lote
-inteiro e só melhora o grupo dentro da mensagem.
+e só melhora o grupo dentro da mensagem.
 
 ## O que reabre
 

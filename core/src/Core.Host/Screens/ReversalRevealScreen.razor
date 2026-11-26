@@ -10,9 +10,12 @@
             <li>A revelação fica registrada antes de a identidade aparecer.</li>
             <li>Ela aparece uma só vez. Voltar ou recarregar não a mostra de novo.</li>
         </ul>
-        <form class="actions" method="post" action="@ScreenPaths.ReversalRevealOf(Request.Id)">
-            <Button Id="revelar" Kind="Button.Look.Danger">Revelar agora</Button>
-            <a href="@ScreenPaths.ReversalMineOf(Request.Id)">Voltar sem revelar</a>
+        <form method="post" action="@ScreenPaths.ReversalRevealOf(Request.Id)" data-wait="revelar-espera">
+            <WaitNotice Id="revelar-espera" Text="Registrando a revelação. A identidade aparece em seguida, uma só vez." />
+            <div class="actions">
+                <Button Id="revelar" Kind="Button.Look.Danger">Revelar agora</Button>
+                <a href="@ScreenPaths.ReversalMineOf(Request.Id)">Voltar sem revelar</a>
+            </div>
         </form>
         break;
     case Shown.Revealed:

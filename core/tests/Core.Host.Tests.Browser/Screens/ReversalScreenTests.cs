@@ -132,6 +132,18 @@ public sealed class ReversalScreenTests(BrowserFixture browser, ReversalHostFixt
         await ScreenAccessibility.AssertAccessibleAsync(tab.Page, MediaMode.Dark, "reversao-revelado");
     }
 
+    [Fact]
+    public async Task DoubleClickOnRevealShowsTheIdentityAndNotTheDenial()
+    {
+        var (request, item, marker) = await reversal.Case.AuthorizedAsync();
+        await using var tab = await EmptyingPages.OpenAsync(browser, reversal.Host, reversal.Host.Curator, $"/reversao/meus-pedidos/{request}/revelar");
+
+        await tab.Page.Locator("#revelar").DblClickAsync();
+
+        await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = $"{marker}, item {item}", Exact = true, Level = 1 })).ToBeVisibleAsync();
+        await Expect(tab.Page.GetByText(ReversalCase.Original, new() { Exact = true })).ToBeVisibleAsync();
+    }
+
     /// <summary>The page in the light on the phone and on the common width of a notebook, kept when the run asks for captures; the width of the checks comes back after.</summary>
     private static async Task CaptureAsync(IPage page, string screen)
     {

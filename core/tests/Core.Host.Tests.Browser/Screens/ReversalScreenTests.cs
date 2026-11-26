@@ -141,30 +141,31 @@ public sealed class ReversalScreenTests(BrowserFixture browser, ReversalHostFixt
         await using var tab = await EmptyingPages.OpenAsync(browser, reversal.Host, reversal.Host.Curator, confirm);
         _ = await tab.Page.AddInitScriptAsync(EntryScreenTests.SubmitRecorder);
         _ = await tab.Page.GotoAsync(confirm);
-        var (onTheWay, release, posts) = (new TaskCompletionSource(), new TaskCompletionSource(), 0);
-        _ = await tab.Page.RouteAsync($"**{confirm}", async route =>
+        var before = reversal.Case.Reveals;
+
+        reversal.Case.HoldTheReveals();
+        Task first;
+        int whileWaiting;
+        try
         {
-            if (route.Request.Method == "POST")
-            {
-                _ = Interlocked.Increment(ref posts);
-                _ = onTheWay.TrySetResult();
-                await release.Task;
-            }
+            first = tab.Page.Locator("#revelar").ClickAsync();
+            await reversal.Case.WaitForRevealsAsync(before + 1);
+            await tab.Page.Keyboard.PressAsync("Enter");
+            await Task.Delay(TimeSpan.FromMilliseconds(600), TestContext.Current.CancellationToken);
+            whileWaiting = reversal.Case.Reveals;
+        }
+        finally
+        {
+            reversal.Case.Release();
+        }
 
-            await route.ContinueAsync();
-        });
-
-        var first = tab.Page.Locator("#revelar").ClickAsync();
-        await onTheWay.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
-        await tab.Page.Keyboard.PressAsync("Enter");
-        _ = await tab.Page.WaitForFunctionAsync("() => JSON.parse(sessionStorage.getItem('submits') || '[]').length === 2");
-        release.SetResult();
         await first;
 
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = $"{marker}, item {item}", Exact = true, Level = 1 })).ToBeVisibleAsync();
         await Expect(tab.Page.GetByText(ReversalCase.Original, new() { Exact = true })).ToBeVisibleAsync();
         var submits = await tab.Page.EvaluateAsync<string[][]>("() => JSON.parse(sessionStorage.getItem('submits') || '[]')");
-        Assert.Equal(1, Volatile.Read(ref posts));
+        Assert.Equal(before + 1, whileWaiting);
+        Assert.Equal(before + 1, reversal.Case.Reveals);
         Assert.Equal(2, submits.Length);
         Assert.Equal(["false", "true", RevealWait], submits[0]);
         Assert.Equal(["true", "true", RevealWait], submits[1]);

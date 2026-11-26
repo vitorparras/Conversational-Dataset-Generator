@@ -3,7 +3,6 @@ using Core.Host.Endpoints;
 using Core.Host.Screens;
 using Core.Persistence.People;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 
 namespace Core.Host.Tests.Browser.Fixtures;
 
@@ -43,7 +42,7 @@ internal sealed class EntryCase : IAsyncDisposable
     public static async Task<EntryCase> StartAsync(bool withPerson, CancellationToken cancellationToken)
     {
         var name = $"zqx-pessoa-{Guid.NewGuid():N}";
-        var gate = new PostGate();
+        var gate = new PostGate(request => request.Path.Equals(ScreenPaths.SignIn));
         var host = await ScreenHost.StartAsync(
             new ScreenParts
             {
@@ -76,61 +75,4 @@ internal sealed class EntryCase : IAsyncDisposable
     public void Release() => gate.Release();
 
     public ValueTask DisposeAsync() => Host.DisposeAsync();
-
-    /// <summary>Tells the channel to be encrypted and, for a post of the entry, counts it and keeps it while the test asks.</summary>
-    private sealed class PostGate
-    {
-        private readonly Lock gate = new();
-        private TaskCompletionSource? held;
-        private int posts;
-
-        public int Posts
-        {
-            get
-            {
-                lock (gate)
-                {
-                    return posts;
-                }
-            }
-        }
-
-        public void Hold()
-        {
-            lock (gate)
-            {
-                held = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            }
-        }
-
-        public void Release()
-        {
-            lock (gate)
-            {
-                _ = held?.TrySetResult();
-                held = null;
-            }
-        }
-
-        public async Task ServeAsync(HttpContext context, RequestDelegate next)
-        {
-            context.Request.Scheme = "https";
-            if (context.Request.Path.Equals(ScreenPaths.SignIn) && HttpMethods.IsPost(context.Request.Method))
-            {
-                Task? waiting;
-                lock (gate)
-                {
-                    posts++;
-                    waiting = held?.Task;
-                }
-
-                if (waiting is not null)
-                {
-                    await waiting.WaitAsync(context.RequestAborted);
-                }
-            }
-
-            await next(context);
-        }
-    }
 }

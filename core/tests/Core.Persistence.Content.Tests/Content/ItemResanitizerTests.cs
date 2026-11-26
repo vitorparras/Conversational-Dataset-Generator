@@ -104,7 +104,9 @@ public sealed class ItemResanitizerTests : IClassFixture<RerunDatabase>
         }, TestContext.Current.CancellationToken);
 
         Assert.Equal((RerunOutcome.Refused, RerunRefusal.Undecided), (result.Outcome, result.Refusal));
-        Assert.Null(Assert.Single(given).Occurrences);
+        var source = Assert.Single(given);
+        Assert.Null(source.Occurrences);
+        Assert.Equal((true, 0), (source.Batch is null, source.Position));
         Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.Undecided)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
         Assert.Equal(before, await rerun.SanitizationOfAsync(item));
         Assert.Equal($"item_text,item_resanitized,sanitization_refused,{RerunCase.Target},true", await rerun.RerunEventsOfAsync(item));

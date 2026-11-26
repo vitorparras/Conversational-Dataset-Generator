@@ -42,6 +42,10 @@ public sealed class MarkerRerunTests : IClassFixture<RerunDatabase>
         Assert.Equal($"{Joined($"{kept}:false", $"{added}:false")}|{Joined(kept, added)}", await rerun.MarkersOfAsync(item));
         var source = Assert.Single(seen);
         Assert.Equal((item, $"{kept}:{PseudonymizedTexts.OriginalOf(kept)}:False"), (source.ItemId, string.Join(';', source.Map!.Select(entry => $"{entry.Marker}:{entry.Original}:{entry.Author}"))));
+
+        // The item holds its map: the raw texts of its batch are not opened for it.
+        Assert.Null(source.Batch);
+        Assert.Equal(0, source.Position);
     }
 
     [DatabaseFact]

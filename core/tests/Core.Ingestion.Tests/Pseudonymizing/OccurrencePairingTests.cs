@@ -37,6 +37,13 @@ public sealed class OccurrencePairingTests
     [Fact]
     public void ItemWithNoStoredOccurrenceIsPairedEmpty() => Assert.Empty(OccurrencePairing.Paired([], [Found(0, 0, 4, "PERSON", 1)], 0)!);
 
+    [Fact]
+    public void PairingWithoutTheStoredOccurrencesIsRefused() =>
+        Assert.Equal("stored", Assert.Throws<ArgumentNullException>(() => OccurrencePairing.Paired(null!, [Found(0, 0, 4, "PERSON", 1)], 0)).ParamName);
+
+    [Fact]
+    public void PairingWithoutTheAnswerIsRefused() => Assert.Equal("answered", Assert.Throws<ArgumentNullException>(() => OccurrencePairing.Paired(Stored, null!, 0)).ParamName);
+
     private static DecidedOccurrence Held(int start, int end, string kind, Destination destination) => new(new Occurrence(start, end, kind, "", ""), destination);
 
     private static GroupedOccurrence Found(int text, int start, int end, string kind, int group) => new(text, start, end, kind, "PROPN", "nsubj", group);

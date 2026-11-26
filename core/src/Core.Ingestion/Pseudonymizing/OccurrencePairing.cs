@@ -17,17 +17,21 @@ public static class OccurrencePairing
     {
         ArgumentNullException.ThrowIfNull(stored);
         ArgumentNullException.ThrowIfNull(answered);
-        var groups = answered.Where(found => found.TextIndex == text).ToLookup(found => (found.Start, found.End, found.Kind), found => found.Group);
+        var groups = new Dictionary<(int Start, int End, string Kind), int>();
+        foreach (var found in answered.Where(found => found.TextIndex == text))
+        {
+            _ = groups.TryAdd((found.Start, found.End, found.Kind), found.Group);
+        }
+
         var paired = new List<DecidedOccurrence>(stored.Count);
         foreach (var held in stored)
         {
-            var key = (held.Occurrence.Start, held.Occurrence.End, held.Occurrence.Kind);
-            if (!groups.Contains(key))
+            if (!groups.TryGetValue((held.Occurrence.Start, held.Occurrence.End, held.Occurrence.Kind), out var group))
             {
                 return null;
             }
 
-            paired.Add(held with { Group = groups[key].First() });
+            paired.Add(held with { Group = group });
         }
 
         return paired;

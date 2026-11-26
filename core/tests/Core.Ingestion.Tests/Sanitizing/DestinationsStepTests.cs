@@ -77,6 +77,15 @@ public sealed class DestinationsStepTests
     }
 
     [Fact]
+    public void PseudonymCarriedToTheSanitizedTextKeepsItsGroup()
+    {
+        var sanitized = Sanitized("chave QXZ7 de Wvkt", Credential(6, 10), Pseudonymized(14, 18) with { Group = 3 });
+
+        var pseudonym = Assert.Single(sanitized.Pseudonyms);
+        Assert.Equal((22, 26, 3), (pseudonym.Occurrence.Start, pseudonym.Occurrence.End, pseudonym.Group));
+    }
+
+    [Fact]
     public void PseudonymizedSpanStaysAndItsPositionResolves()
     {
         const string raw = "chave QXZ7 de Wvkt e Wvkt";
@@ -85,8 +94,8 @@ public sealed class DestinationsStepTests
 
         var pseudonym = Assert.Single(sanitized.Pseudonyms);
         Assert.Equal("chave [credencial] de Wvkt e Wvkt", sanitized.Text);
-        Assert.Equal((22, 26, OccurrenceKinds.Person), (pseudonym.Start, pseudonym.End, pseudonym.Kind));
-        Assert.Equal("Wvkt", Boundaries.Slice(sanitized.Text, pseudonym));
+        Assert.Equal((22, 26, OccurrenceKinds.Person), (pseudonym.Occurrence.Start, pseudonym.Occurrence.End, pseudonym.Occurrence.Kind));
+        Assert.Equal("Wvkt", Boundaries.Slice(sanitized.Text, pseudonym.Occurrence));
     }
 
     [Fact]
@@ -98,7 +107,7 @@ public sealed class DestinationsStepTests
         var secretName = Sanitized(raw, Decided("TOKEN", "PROPN", 16, 20));
 
         Assert.Equal("token [credencial] do Wvkt", sanitized.Text);
-        Assert.Equal([(22, 26)], sanitized.Pseudonyms.Select(pseudonym => (pseudonym.Start, pseudonym.End)));
+        Assert.Equal([(22, 26)], sanitized.Pseudonyms.Select(pseudonym => (pseudonym.Occurrence.Start, pseudonym.Occurrence.End)));
         Assert.Equal("token Kq7Zx9 do [credencial]", secretName.Text);
         Assert.Empty(secretName.Pseudonyms);
     }
@@ -111,7 +120,7 @@ public sealed class DestinationsStepTests
 
         var pseudonym = Assert.Single(beside.Pseudonyms);
         Assert.Equal(("chave [credencial]Wvkt fim", "[credencial][dado]"), (beside.Text, removedTwice.Text));
-        Assert.Equal("Wvkt", Boundaries.Slice(beside.Text, pseudonym));
+        Assert.Equal("Wvkt", Boundaries.Slice(beside.Text, pseudonym.Occurrence));
     }
 
     [Fact]

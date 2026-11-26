@@ -104,7 +104,7 @@ internal sealed partial class RerunScreensWorld : IAsyncDisposable
     {
         var hold = await Rerun.Queue.TakeAsync(SubmissionWorld.Domain, CompositionRoot.StepsOf().Version, Token) ?? throw new InvalidOperationException("No item was queued.");
         var resanitizer = new ItemResanitizer(Rerun.Submissions.DataSource, Rerun.Submissions.Content, Rerun.Clock);
-        _ = await resanitizer.ResanitizeAsync(hold, held => DecidedItemTexts.Rerun(InForce, held), Token);
+        _ = await resanitizer.ResanitizeAsync(hold, held => DecidedItemTexts.Rerun(InForce, CompositionRoot.SwapOf(), held), Token);
     }
 
     /// <summary>Spends every try of each item left in the queue, as a worker that keeps failing would, so that each is refused and the request ends.</summary>

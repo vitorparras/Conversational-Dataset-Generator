@@ -34,7 +34,7 @@ internal static class SubmissionCase
     private const long MaxBytes = 1_000_000;
     private const int MinLength = 24;
 
-    internal static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1"];
+    internal static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1", "mapa-reversao/1/v1", "mapa-reversao/2/v1"];
 
     /// <summary>The parts of the host, whose service of the submissions asks the recognizer given or, without one, one that finds nothing.</summary>
     public static ScreenParts Parts(IRecognizer? recognizer = null) => new()
@@ -90,7 +90,7 @@ internal static class SubmissionCase
             Task.FromResult(RecognitionOutcome.Analyzed(new AnalysisResponse([], "zqx-model-clean")));
 
         public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("No submission asks for a whole item yet.");
+            Task.FromResult(ItemRecognitionOutcome.Analyzed(new ItemAnalysisResponse([], AuthorsOf(request), "zqx-model-clean")));
     }
 
     /// <summary>A recognizer that finds a credential in the first character of every text, which the destinations remove and the sanitized text shows by its marker.</summary>
@@ -100,8 +100,13 @@ internal static class SubmissionCase
             Task.FromResult(RecognitionOutcome.Analyzed(new AnalysisResponse([new Occurrence(0, 1, "CREDENTIAL", "PROPN", "nsubj")], "zqx-model-credential")));
 
         public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) =>
-            throw new NotSupportedException("No submission asks for a whole item yet.");
+            Task.FromResult(ItemRecognitionOutcome.Analyzed(new ItemAnalysisResponse(
+                [.. request.Texts.Select((_, text) => new GroupedOccurrence(text, 0, 1, "CREDENTIAL", "PROPN", "nsubj", text))], AuthorsOf(request), "zqx-model-credential")));
     }
+
+    /// <summary>Each author of the item in a group of its own, numbered after every group of an occurrence.</summary>
+    private static List<AuthorGroup> AuthorsOf(ItemAnalysisRequest request) =>
+        [.. request.Texts.Select(text => text.Author).OfType<string>().Distinct(StringComparer.Ordinal).Select((author, index) => new AuthorGroup(author, request.Texts.Count + index))];
 
     /// <summary>The domain granted to whoever enters, whatever the function; the function still decides what the gate opens.</summary>
     private sealed class FirstGranted : DomainGrants

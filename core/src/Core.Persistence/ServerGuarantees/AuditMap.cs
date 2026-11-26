@@ -66,7 +66,8 @@ public static class AuditMap
             "a tabela public.person_email fica fora do mapa: a própria pessoa muda o endereço sem passo da cadeia (política 009), e os comandos do log não casam com os eventos",
         [CustodyStep.SanitizationRerun] = "o pedido de reexecução grava a fila, tabelas que o mapa não compara: a cadeia guarda o evento do pedido",
         [CustodyStep.ItemResanitized] =
-            "a reexecução lê o item e troca a sanitização só quando há o que trocar; o recusado e o superado não alteram a tabela, então os comandos do log não casam com os eventos",
+            "a reexecução lê o item e o mapa e troca a sanitização, o pseudonimizado e o mapa só quando há o que trocar; o recusado e o superado não alteram a tabela, então os comandos do "
+            + "log não casam com os eventos",
         [CustodyStep.ReversalRequested] = "o pedido de reversão grava uma linha em tabela que o mapa não compara: a cadeia guarda o evento do pedido",
         [CustodyStep.ReversalRequestRefused] = "a recusa do pedido não cria linha nenhuma: grava só o evento na cadeia",
         [CustodyStep.ReversalRequestRead] = "a leitura do texto do pedido é um SELECT em tabela que o mapa não compara: a cadeia guarda o evento da leitura",

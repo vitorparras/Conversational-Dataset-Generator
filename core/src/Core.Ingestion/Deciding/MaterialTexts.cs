@@ -18,6 +18,14 @@ public static class MaterialTexts
         };
     }
 
+    /// <summary>The author of each text of the item, in the order of <see cref="Of"/>: the sender of each message of the conversation, and none for the texts of the other forms.</summary>
+    /// <param name="material">An item that passed the conference of its form.</param>
+    public static IReadOnlyList<string?> AuthorsOf(Material material)
+    {
+        ArgumentNullException.ThrowIfNull(material);
+        return material is Conversation conversation ? [.. conversation.Messages.Select(message => message.Author)] : [.. Of(material).Select(_ => (string?)null)];
+    }
+
     /// <summary>For each unit of the file, in the order of the file, the position of its text among the texts of the item: only the conversation puts its messages in another order.</summary>
     /// <param name="material">The item the units were accepted as.</param>
     /// <param name="read">The units as they were read, in the order of the file.</param>

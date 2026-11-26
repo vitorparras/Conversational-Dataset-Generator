@@ -1,4 +1,5 @@
 using Core.Host.Submissions;
+using Core.Ingestion.Pseudonymizing;
 using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content.Rerun;
 using Core.Persistence.Domains;
@@ -59,10 +60,13 @@ internal sealed class RerunService : BackgroundService
     private static Parts? PartsOf(IServiceProvider host, SanitizationRerun rerun)
     {
         var startup = host.GetRequiredService<ServiceProvider>();
-        return startup.GetService<NpgsqlDataSource>() is { } source
-            ? new Parts(new DomainListing(source), new SanitizationReruns(source, host.GetRequiredService<TimeProvider>()), rerun,
-                token => OpenAsync(startup, source, host.GetRequiredService<TimeProvider>(), token))
-            : null;
+        if (startup.GetService<NpgsqlDataSource>() is not { } source)
+        {
+            return null;
+        }
+
+        var time = host.GetRequiredService<TimeProvider>();
+        return new Parts(new DomainListing(source), new SanitizationReruns(source, time), rerun, token => OpenAsync(startup, source, time, token)) { Swap = CompositionRoot.SwapOf() };
     }
 
     /// <summary>The content opened with the master key and the labels the database registers, for one item; none to rerun with when the key was not read.</summary>
@@ -125,7 +129,7 @@ internal sealed class RerunService : BackgroundService
     {
         try
         {
-            var result = await resanitizer.ResanitizeAsync(hold, held => DecidedItemTexts.Rerun(work.Rerun, held), cancellationToken).ConfigureAwait(false);
+            var result = await resanitizer.ResanitizeAsync(hold, held => DecidedItemTexts.Rerun(work.Rerun, work.Swap, held), cancellationToken).ConfigureAwait(false);
             Report(hold, result);
         }
         catch (Exception failure) when (failure is SanitizationStepFailedException or ArgumentException)
@@ -150,8 +154,15 @@ internal sealed class RerunService : BackgroundService
         }
     }
 
-    /// <summary>What the worker treats the queue with: the domains, the queue, the rerun of the steps in force and the content, opened for each item and let go at its end.</summary>
-    internal sealed record Parts(DomainListing Domains, SanitizationReruns Queue, SanitizationRerun Rerun, Func<CancellationToken, Task<Access>> Open);
+    /// <summary>
+    /// What the worker treats the queue with: the domains, the queue, the rerun of the steps in force and the content, opened for each item and let go at its end, and the swap that
+    /// pseudonymizes again an item pseudonymized.
+    /// </summary>
+    internal sealed record Parts(DomainListing Domains, SanitizationReruns Queue, SanitizationRerun Rerun, Func<CancellationToken, Task<Access>> Open)
+    {
+        /// <summary>Pseudonymizes again, with the markers of its map, an item whose sanitized text the rerun changes.</summary>
+        internal required PseudonymSwap Swap { get; init; }
+    }
 
     /// <summary>The rerun of the held items over the content opened, none when the key was not read, and the reading of the key, let go with it.</summary>
     internal sealed record Access(ItemResanitizer? Resanitizer, IDisposable? Reading) : IDisposable

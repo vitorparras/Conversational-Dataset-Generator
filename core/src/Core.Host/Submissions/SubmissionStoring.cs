@@ -41,7 +41,7 @@ internal static class SubmissionStoring
     /// <summary>The motive of the batch registered as rejected when the key that seals the content could not be read.</summary>
     internal const string KeyUnavailable = "content_key_unavailable";
 
-    /// <summary>Whether the raw text of an item of the domain can be sealed now: there is a key to seal with, under a label loaded, registered and not revoked.</summary>
+    /// <summary>Whether the texts and the map of an item of the domain can be sealed now: there is a key to seal each with, under a label loaded, registered and not revoked.</summary>
     /// <param name="sealing">The path that seals.</param>
     /// <param name="domainId">The domain of the batch.</param>
     internal static bool CanSeal(ProtectedContent? sealing, int domainId)
@@ -54,6 +54,7 @@ internal static class SubmissionStoring
         try
         {
             using var key = sealing.Begin(ContentColumns.ItemKey, domainId);
+            using var map = sealing.Begin(ContentColumns.MapKey, domainId);
             return true;
         }
         catch (InvalidOperationException)
@@ -64,7 +65,8 @@ internal static class SubmissionStoring
 
     /// <summary>
     /// Analyses and sanitizes every text of the material before the first item, then writes each unit as an item of the batch with the occurrences decided in it and its sanitized text,
-    /// and says how it ended: kept, a text with no analysis, a step that failed, a write that failed or a submission cancelled while it analysed or wrote (issue 775);
+    /// and says how it ended: kept, a text with no analysis, a step that failed, a write that failed, a write the database never serialized, told to try again as a collision,
+    /// or a submission cancelled while it analysed or wrote (issue 775);
     /// when it was not kept, the items before the one that failed still stand for the rejection to remove.
     /// </summary>
     /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
@@ -86,14 +88,7 @@ internal static class SubmissionStoring
                 return Keeping.StepFailed;
             }
 
-            var written = new List<(long Item, ReadUnit Unit)>();
-            foreach (var ((unit, declared, position), clean) in kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form), positions).Zip(sanitized))
-            {
-                var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
-                var text = DecidedItemTexts.Of(decided, position, unit.Text, clean) with { Accommodation = accommodation };
-                written.Add((await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, text, cancellationToken).ConfigureAwait(false), unit));
-            }
-
+            var written = await SubmissionSwapping.WriteAsync(intake, kept, new(decided, positions, sanitized), cancellationToken).ConfigureAwait(false);
             if (kept.Form == MaterialForm.Conversation && intake.Marking is { } marking)
             {
                 await marking.MarkAsync(kept.DomainId, kept.BatchId, written, cancellationToken).ConfigureAwait(false);
@@ -104,6 +99,11 @@ internal static class SubmissionStoring
         catch (OperationCanceledException)
         {
             return Keeping.Cancelled;
+        }
+        catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.SerializationFailure)
+        {
+            // Every attempt was serialized behind a submission made together: like a collision of the chain, it is for the caller to try again.
+            return Keeping.Collided;
         }
         catch (Exception failure) when (failure is InvalidOperationException or NpgsqlException)
         {

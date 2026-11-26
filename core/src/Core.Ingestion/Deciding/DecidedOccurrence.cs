@@ -7,6 +7,9 @@ namespace Core.Ingestion.Deciding;
 /// <param name="Destination">What becomes of it.</param>
 public sealed record DecidedOccurrence(Occurrence Occurrence, Destination Destination)
 {
+    /// <summary>The coreference group the service gave the occurrence when the item was analysed whole (decision 0060); null when its text was analysed alone.</summary>
+    public int? Group { get; init; }
+
     /// <summary>The kind and the destination; never the offsets, which with the text rebuild what was found.</summary>
     public override string ToString() => $"DecidedOccurrence {{ Kind = {Occurrence.Kind}, Destination = {Destination} }}";
 }

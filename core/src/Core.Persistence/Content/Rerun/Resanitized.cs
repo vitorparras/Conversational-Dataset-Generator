@@ -12,11 +12,14 @@ namespace Core.Persistence.Content.Rerun;
 /// <param name="Identical">Whether the text is the one the item holds.</param>
 public sealed record Resanitized(string Text, string Version, string Steps, string Trail, IReadOnlyList<int> Counts, IReadOnlyList<int> Untreated, bool Identical)
 {
+    /// <summary>The text the swap made of the new sanitized one; null when the rerun does not pseudonymize the item.</summary>
+    public string? Pseudonymized { get; init; }
+
     /// <summary>
-    /// The markers the item holds after the rerun, the ones it held already among them, drawn again for none; null when the rerun does not pseudonymize. The markers the text
-    /// no longer holds leave the item and stay held in the installation.
+    /// The entries of the new map of the item, the markers it held already among them, drawn again for none; null when the rerun does not pseudonymize. The markers the text no longer
+    /// holds leave the item and stay held in the installation.
     /// </summary>
-    public IReadOnlyList<HeldMarker>? Markers { get; init; }
+    public IReadOnlyList<NewMapEntry>? Map { get; init; }
 
     /// <summary>The version, the counts and whether it is identical; never the text nor the trail.</summary>
     public override string ToString() => $"Resanitized {{ Version = {Version}, Counts = {string.Join(", ", Counts)}, Identical = {Identical} }}";

@@ -31,6 +31,15 @@ public sealed class PseudonymSwapTests
     }
 
     [Fact]
+    public void OriginalIsTheSpanOfTheOccurrenceCutByCodePoints()
+    {
+        // The pair before the span is one code point and two UTF-16 units: a cut by units would start one unit too soon.
+        var original = SwapOf(Draws.Of()).Original("😀 ZQXA viu", new Occurrence(2, 6, OccurrenceKinds.Person, "PROPN", "nsubj"));
+
+        Assert.Equal("ZQXA", original);
+    }
+
+    [Fact]
     public void RemovedSpanNeverBecomesAMapEntry()
     {
         var swap = SwapOf(Draws.Of());
@@ -117,6 +126,44 @@ public sealed class PseudonymSwapTests
         var swapped = swap.Swap(request, marker => marker.Number == 4);
 
         Assert.Equal(6, swapped.Entries.Single().Marker.Number);
+    }
+
+    [Fact]
+    public void MentionsOfOneGroupShareTheMarkerAcrossMessages()
+    {
+        var swap = SwapOf(Draws.Of(11, 22));
+        var first = new SwapRequest { Sanitized = "oi ZQXA", Occurrences = [Person(3, 7, Referent.Group(1))] };
+        var second = new SwapRequest { Sanitized = "ZQXB viu ZQXA", Occurrences = [Person(0, 4, Referent.Group(2)), Person(9, 13, Referent.Group(1))] };
+
+        var swapped = swap.SwapConversation([first, second], _ => false);
+
+        Assert.Equal(["oi PESSOA_00000011", "PESSOA_00000022 viu PESSOA_00000011"], swapped.Select(message => message.Text));
+    }
+
+    [Fact]
+    public void AuthorOfAMessageGetsAnEntryUnderItsNameEvenUnmentioned()
+    {
+        var swap = SwapOf(Draws.Of(31, 32));
+        var first = new SwapRequest { Sanitized = "sem nomes", Occurrences = [], Author = "ZQXAUTOR" };
+        var second = new SwapRequest { Sanitized = "oi ZQXAUTOR", Occurrences = [Person(3, 11, Referent.Author("ZQXAUTOR"))], Author = "ZQXOUTRO" };
+
+        var swapped = swap.SwapConversation([first, second], _ => false);
+
+        Assert.Equal([("PESSOA_00000031", "ZQXAUTOR", true)], swapped[0].Entries.Select(entry => (entry.Marker.Text, entry.Original, entry.IsAuthor)));
+        Assert.Equal([("PESSOA_00000032", "ZQXOUTRO", true), ("PESSOA_00000031", "ZQXAUTOR", true)], swapped[1].Entries.Select(entry => (entry.Marker.Text, entry.Original, entry.IsAuthor)));
+        Assert.Equal("oi PESSOA_00000031", swapped[1].Text);
+    }
+
+    [Fact]
+    public void ConversationTakesNoMapButTheOneOfEachItem()
+    {
+        var swap = SwapOf(Draws.Of());
+        var ofAnother = new ItemMap(8, [new MapEntry(Referent.Group(1), new Marker(MarkerKind.Person, 5), "ZQXA")]);
+        var request = new SwapRequest { Sanitized = Text, Occurrences = [Person(3, 7, Referent.Group(1))], ItemId = 7, Map = ofAnother };
+
+        var refused = Assert.Throws<ArgumentException>(() => swap.SwapConversation([request], _ => false));
+
+        Assert.Equal("requests", refused.ParamName);
     }
 
     private static ReferredOccurrence Person(int start, int end, Referent referent) =>

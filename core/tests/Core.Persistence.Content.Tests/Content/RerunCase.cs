@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using Core.Persistence.Content;
@@ -82,8 +83,21 @@ internal sealed class RerunCase
         new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, DomainId, new NewItemText(Raw), TestContext.Current.CancellationToken);
 
     /// <summary>A pseudonymized item of the accepted batch of the domain, with its map and its markers, as the writer answers it: written, or the markers held already.</summary>
-    public Task<PseudonymizedWrite> PseudonymizedAsync(NewItemText item) =>
-        new ContentWriter(application, custody.Content).AddPseudonymizedItemAsync(DomainId, DomainId, item, TestContext.Current.CancellationToken);
+    public Task<PseudonymizedWrite> PseudonymizedAsync(NewItemText item, long? batch = null) =>
+        new ContentWriter(application, custody.Content).AddPseudonymizedItemAsync(DomainId, batch ?? DomainId, item, TestContext.Current.CancellationToken);
+
+    /// <summary>A second accepted batch of the domain, seeded by the owner as the first one is, for an item of another conversation.</summary>
+    public async Task<long> AnotherBatchAsync()
+    {
+        await database.RunAsOwnerAsync(
+            "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_is_born_open",
+            "ALTER TABLE content.ingestion_batch DISABLE TRIGGER batch_open_needs_event",
+            $"SELECT set_config('app.domain', '{DomainId}', false)",
+            $"INSERT INTO content.ingestion_batch (domain_id, state, opened_by, condition, closed_at) SELECT {DomainId}, 'accepted', min(id), 'restrita', now() FROM public.person",
+            "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_is_born_open",
+            "ALTER TABLE content.ingestion_batch ENABLE ALWAYS TRIGGER batch_open_needs_event");
+        return long.Parse(await OwnerTextAsync($"SELECT max(id)::text FROM content.ingestion_batch WHERE domain_id = {DomainId} AND id <> @item", DomainId), CultureInfo.InvariantCulture);
+    }
 
     /// <summary>The markers the item holds, each with whether it stands for an author, then the ones the domain holds in the installation, read as the owner.</summary>
     public Task<string> MarkersOfAsync(long item) => OwnerTextAsync(
@@ -258,7 +272,7 @@ internal sealed class RerunCase
         await using var connection = await Sql.OpenAsync(database.OwnerConnectionString);
         await using (var scope = new NpgsqlCommand("SELECT set_config('app.domain', @domain, false)", connection))
         {
-            _ = scope.Parameters.AddWithValue("domain", DomainId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            _ = scope.Parameters.AddWithValue("domain", DomainId.ToString(CultureInfo.InvariantCulture));
             _ = await scope.ExecuteScalarAsync(TestContext.Current.CancellationToken);
         }
 

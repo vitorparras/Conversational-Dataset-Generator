@@ -7,7 +7,10 @@ using Npgsql;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>The approval of a batch after its whole sample was reviewed clean (#822): review and acceptance are two events and two row changes in one transaction.</summary>
+/// <summary>
+/// The approval of a batch after its whole sample was reviewed clean (#822): review and acceptance are two events and two row changes in one transaction, with the event of the
+/// pseudonymization before the acceptance when some item of the batch is pseudonymized (#102).
+/// </summary>
 public sealed class BatchApprovals
 {
     private readonly NpgsqlDataSource dataSource;
@@ -33,9 +36,15 @@ public sealed class BatchApprovals
     private static async Task<CustodyResult> AppendAsync(CustodyScope scope, BatchApproval request, CancellationToken cancellationToken)
     {
         var reviewed = await CustodyAppend.AppendAsync(scope, CustodyEvent.BatchReviewed(request.ReviewerId, request.BatchId, found: false), cancellationToken).ConfigureAwait(false);
-        return reviewed.Outcome == CustodyOutcome.Appended
-            ? await CustodyAppend.AppendAsync(scope, CustodyEvent.BatchAccepted(CustodyAuthor.Person(request.ReviewerId), request.BatchId), cancellationToken).ConfigureAwait(false)
-            : reviewed;
+        if (reviewed.Outcome != CustodyOutcome.Appended)
+        {
+            return reviewed;
+        }
+
+        var author = CustodyAuthor.Person(request.ReviewerId);
+        return await IngestionBatches.AppendPseudonymizedAsync(scope, author, request.BatchId, cancellationToken).ConfigureAwait(false) is { Outcome: not CustodyOutcome.Appended } refused
+            ? refused
+            : await CustodyAppend.AppendAsync(scope, CustodyEvent.BatchAccepted(author, request.BatchId), cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task<BatchReviewOutcome?> RefusalAsync(CustodyScope scope, BatchApproval request, CancellationToken cancellationToken)

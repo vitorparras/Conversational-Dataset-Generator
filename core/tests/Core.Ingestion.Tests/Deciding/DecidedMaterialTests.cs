@@ -102,7 +102,7 @@ public sealed class DecidedMaterialTests
         var material = Found.Accepted(MaterialForm.Comment, Units.Message("texto", "ana", null));
 
         Assert.Equal("material", Assert.Throws<ArgumentNullException>(() => DecidedMaterial.Decide(null!, [Found.Analysis()])).ParamName);
-        Assert.Equal("analyses", Assert.Throws<ArgumentNullException>(() => DecidedMaterial.Decide(material, null!)).ParamName);
+        Assert.Equal("analyses", Assert.Throws<ArgumentNullException>(() => DecidedMaterial.Decide(material, (IReadOnlyList<RecognitionOutcome>)null!)).ParamName);
     }
 
     [Fact]

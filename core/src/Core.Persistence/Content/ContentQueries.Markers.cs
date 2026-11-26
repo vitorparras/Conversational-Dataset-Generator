@@ -4,12 +4,24 @@ namespace Core.Persistence.Content;
 public static partial class ContentQueries
 {
     /// <summary>
-    /// Holds the markers of an item in the installation, the kind read from the word of the marker; a marker some row holds already, of this domain or of another, is
-    /// passed over and not returned, so whoever drew it learns it lost the draw without reading the row that won it.
+    /// Holds the markers of an item in the installation for its batch, the kind read from the word of the marker, and returns the ones the batch holds: the ones won now and the ones an
+    /// earlier message of the same conversation won (0057). A marker another batch holds, of this domain or of another, is passed over and not returned, so whoever drew it learns it lost
+    /// the draw without reading the row that won it; so is one another item holds in a batch that is no conversation, where each item counts as a conversation of its own.
     /// </summary>
     internal const string InsertMarkersInUse =
-        "INSERT INTO content.marker_in_use (domain_id, marker, kind) SELECT @domain, m, CASE split_part(m, '_', 1) WHEN 'PESSOA' THEN 'person' WHEN 'LUGAR' THEN 'place' "
-        + "WHEN 'ORGANIZACAO' THEN 'organization' END FROM unnest(@markers::text[]) AS t(m) ON CONFLICT DO NOTHING RETURNING marker";
+        "WITH won AS (INSERT INTO content.marker_in_use (domain_id, batch_id, marker, kind) SELECT @domain, @batch, m, CASE split_part(m, '_', 1) WHEN 'PESSOA' THEN 'person' "
+        + "WHEN 'LUGAR' THEN 'place' WHEN 'ORGANIZACAO' THEN 'organization' END FROM unnest(@markers::text[]) AS t(m) ON CONFLICT DO NOTHING RETURNING marker) "
+        + "SELECT marker FROM won UNION SELECT u.marker FROM content.marker_in_use u WHERE u.batch_id = @batch AND u.marker = ANY(@markers::text[]) "
+        + "AND (EXISTS (SELECT 1 FROM content.ingestion_batch b WHERE b.id = @batch AND b.declared_form = 'conversation') "
+        + "OR NOT EXISTS (SELECT 1 FROM content.item_marker i WHERE i.marker = u.marker))";
+
+    /// <summary>Holds for the batch the markers given that no batch holds, and returns them: a marker held already, by this batch or another, is not among them.</summary>
+    internal const string InsertMarkersWon =
+        "INSERT INTO content.marker_in_use (domain_id, batch_id, marker, kind) SELECT @domain, @batch, m, CASE split_part(m, '_', 1) WHEN 'PESSOA' THEN 'person' "
+        + "WHEN 'LUGAR' THEN 'place' WHEN 'ORGANIZACAO' THEN 'organization' END FROM unnest(@markers::text[]) AS t(m) ON CONFLICT DO NOTHING RETURNING marker";
+
+    /// <summary>The batch of the item, whose conversation holds its markers.</summary>
+    internal const string ReadItemBatch = "SELECT batch_id FROM content.item_text WHERE id = @item";
 
     /// <summary>Gives the item its markers, saying which stand for an author; a marker the item holds already is kept as it is.</summary>
     internal const string InsertItemMarkers =

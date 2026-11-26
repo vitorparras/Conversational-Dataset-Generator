@@ -5,8 +5,9 @@ using Core.Ingestion.Deciding;
 namespace Core.Ingestion.Pseudonymizing;
 
 /// <summary>
-/// The swap of one item (decision 0012): the marker of each referent is written in place of its span of the sanitized text, and the map of the item keeps marker and original. The
-/// conversation is resolved in the item itself (decision 0057): the only map taken is the one of the item, whose markers are kept, and a referent it does not have gets a drawn one.
+/// The swap of the items of one conversation (decision 0012): the marker of each referent is written in place of its span of the sanitized text, and the map of each item keeps
+/// marker and original. The conversation is resolved in itself, in one draw for all its messages (decision 0057): the only maps taken are the ones of the items swapped, whose
+/// markers are kept, and a referent they do not have gets a drawn one; the author of each message gets an entry under its name.
 /// Two spans that overlap become one, under the referent of the one that starts first; a span ending where another starts is no overlap. A span whose destination is not to
 /// pseudonymize never becomes an entry: the swap stops before anything is written.
 /// </summary>
@@ -24,6 +25,12 @@ public sealed class PseudonymSwap
         this.conversation = conversation ?? throw new ArgumentNullException(nameof(conversation));
     }
 
+    /// <summary>The original an occurrence points at in the sanitized text, cut by code points as the swap cuts it.</summary>
+    /// <param name="sanitized">The sanitized text the occurrence was found in.</param>
+    /// <param name="occurrence">An occurrence of that text.</param>
+    /// <exception cref="ArgumentOutOfRangeException">The occurrence ends before it starts or falls outside the text.</exception>
+    public string Original(string sanitized, Occurrence occurrence) => boundaries.Slice(sanitized, occurrence);
+
     /// <summary>The pseudonymized text and the entries of the map of the item.</summary>
     /// <param name="request">The sanitized text, its occurrences and, when the item is pseudonymized again, the item and its map.</param>
     /// <param name="inUseElsewhere">Whether a marker is held by another conversation, of any domain.</param>
@@ -33,24 +40,51 @@ public sealed class PseudonymSwap
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(inUseElsewhere);
+        Check(request, nameof(request));
+        return Swapped([request], inUseElsewhere)[0];
+    }
+
+    /// <summary>The pseudonymized text and the entries of the map of each item of one conversation, in the order given, in one draw: a referent has one marker in all of them.</summary>
+    /// <param name="requests">The items of the conversation, each with its sanitized text, its occurrences and the author of its message.</param>
+    /// <param name="inUseElsewhere">Whether a marker is held by another conversation, of any domain.</param>
+    /// <exception cref="ArgumentException">A map is not the one of its item, or an occurrence falls outside its text or names nothing a marker stands for.</exception>
+    /// <exception cref="PseudonymOfRemovedException">An occurrence is not to pseudonymize.</exception>
+    public IReadOnlyList<Pseudonymized> SwapConversation(IReadOnlyList<SwapRequest> requests, Func<Marker, bool> inUseElsewhere)
+    {
+        ArgumentNullException.ThrowIfNull(requests);
+        ArgumentNullException.ThrowIfNull(inUseElsewhere);
+        foreach (var request in requests)
+        {
+            Check(request ?? throw new ArgumentException("A request of the conversation is missing.", nameof(requests)), nameof(requests));
+        }
+
+        return Swapped(requests, inUseElsewhere);
+    }
+
+    private static void Check(SwapRequest request, string parameter)
+    {
         if (request.Map is { } map && map.ItemId != request.ItemId)
         {
-            throw new ArgumentException("The swap takes no map but the one of its item.", nameof(request));
+            throw new ArgumentException("The swap takes no map but the one of its item.", parameter);
         }
 
         if (request.Occurrences.Any(occurrence => occurrence.Decided.Destination != Destination.Pseudonymize))
         {
             throw new PseudonymOfRemovedException();
         }
-
-        var markers = conversation(inUseElsewhere, Known(request.Map));
-        return Written(request.Sanitized, Merged(request.Occurrences, boundaries.CodePointCount(request.Sanitized)), markers);
     }
 
-    private static Dictionary<Referent, Marker> Known(ItemMap? map)
+    private List<Pseudonymized> Swapped(IReadOnlyList<SwapRequest> requests, Func<Marker, bool> inUseElsewhere)
+    {
+        var spans = requests.Select(request => Merged(request.Occurrences, boundaries.CodePointCount(request.Sanitized))).ToList();
+        var markers = conversation(inUseElsewhere, Known(requests));
+        return [.. requests.Select((request, index) => Written(request, spans[index], markers))];
+    }
+
+    private static Dictionary<Referent, Marker> Known(IEnumerable<SwapRequest> requests)
     {
         var known = new Dictionary<Referent, Marker>();
-        foreach (var entry in map?.Entries ?? [])
+        foreach (var entry in requests.SelectMany(request => request.Map?.Entries ?? []))
         {
             _ = known.TryAdd(entry.Referent, entry.Marker);
         }
@@ -82,10 +116,16 @@ public sealed class PseudonymSwap
         return merged;
     }
 
-    private Pseudonymized Written(string text, IReadOnlyCollection<Span> spans, ConversationMarkers markers)
+    private Pseudonymized Written(SwapRequest request, IReadOnlyCollection<Span> spans, ConversationMarkers markers)
     {
+        var text = request.Sanitized;
         var written = new StringBuilder(text.Length);
-        var entries = new List<MapEntry>(spans.Count);
+        var entries = new List<MapEntry>(spans.Count + 1);
+        if (request.Author is { } author)
+        {
+            entries.Add(new MapEntry(Referent.Author(author), markers.Of(Referent.Author(author), MarkerKind.Person), author));
+        }
+
         var at = 0;
         foreach (var span in spans)
         {

@@ -192,6 +192,7 @@ public static class ContentColumns
         new(MarkerInUse, DomainColumn, ClearKind.Domain),
         new(MarkerInUse, "marker", ClearKind.Motive),
         new(MarkerInUse, "kind", ClearKind.Motive),
+        new(MarkerInUse, BatchColumn, ClearKind.Identifier),
         new(ItemMarker, IdColumn, ClearKind.Identifier),
         new(ItemMarker, DomainColumn, ClearKind.Domain),
         new(ItemMarker, ItemColumn, ClearKind.Identifier),

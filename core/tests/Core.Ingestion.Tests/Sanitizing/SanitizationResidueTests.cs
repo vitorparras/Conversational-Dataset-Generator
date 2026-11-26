@@ -64,7 +64,7 @@ public sealed class SanitizationResidueTests
         {
             var once = Sanitized(EveryStep(), material.Text, material.Decided);
 
-            var twice = Sanitized(EveryStep(), once.Text, [.. once.Pseudonyms.Select(occurrence => new DecidedOccurrence(occurrence, Destination.Pseudonymize))]);
+            var twice = Sanitized(EveryStep(), once.Text, [.. once.Pseudonyms]);
 
             Assert.Equal(once.Text, twice.Text);
         });

@@ -127,6 +127,7 @@ internal static class CompositionRoot
     internal static CopyClosing ClosingOf(NpgsqlDataSource source, Persistence.Ingestion.IngestionBatches batches) => new(new Persistence.Ingestion.BatchApprovals(source), batches);
     internal static SanitizationSteps StepsOf() =>
         new([new EncodingRepairStep(new TextBoundaries()), new FormatArtifactStep(new TextBoundaries()), new IdentifierStep(new TextBoundaries()), new DestinationsStep()]);
+    internal static Ingestion.Pseudonymizing.PseudonymSwap SwapOf() => new(new TextBoundaries(), (elsewhere, known) => new(new Ingestion.Pseudonymizing.MarkerDraw(), elsewhere, known));
     /// <summary>What takes a file in over the key a reading holds: the gate, the conference, the sealing and the writer are services, built here; the last three are none without the key.</summary>
     internal static SubmissionIntake IntakeOf(NpgsqlDataSource source, MasterKeyReading reading, SubmissionSettings settings)
     {
@@ -135,12 +136,11 @@ internal static class CompositionRoot
             new SubmissionGate(SourceReaders.Default(), settings.MaxBytes), new FormConference(new TextBoundaries()), settings.Conditions, sealing,
             sealing is null ? null : new ContentWriter(source, sealing),
             sealing is null ? null : new ReplicationMarking(new ReplicationStore(source), new KeyDerivation(reading.Key!, reading.Labels), settings.Replication, new TextBoundaries()),
-            settings.Recognizer, new Sanitizer(StepsOf(), new TextBoundaries()));
+            settings.Recognizer, new Sanitizer(StepsOf(), new TextBoundaries()), SwapOf());
     }
 
     /// <summary>The rehearsal of the recovery over a source that was read, opening content with the labels the database registers.</summary>
     internal static RecoveryRehearsal RehearsalOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known), TimeProvider.System);
-
     /// <summary>The record of the rehearsal in the chain of the production, and the load of a restored copy.</summary>
     internal static RecoveryRecording RecordingOf(NpgsqlDataSource dataSource) => new(dataSource);
     internal static RestoreLoader LoaderOf(NpgsqlDataSource dataSource) => new(dataSource, new GuaranteeVerifier(dataSource), TimeProvider.System);

@@ -87,7 +87,7 @@ internal sealed class SubmissionWorld : IAsyncDisposable
         }
 
         var conditions = OriginConditions.Of([Strictest, "zqx_media", Loosest]);
-        var content = SealingOf(labels ?? ["texto-bruto/1/v1", "texto-bruto/2/v1"]);
+        var content = SealingOf(labels ?? ["texto-bruto/1/v1", "texto-bruto/2/v1", "mapa-reversao/1/v1", "mapa-reversao/2/v1"]);
         var intake = Intake(maxBytes, conditions, content, dataSource, replication, recognizer: recognizer);
         intake = sanitizer is null ? intake : intake with { Cleaner = sanitizer };
         var batches = attempts is { } made ? new IngestionBatches(dataSource, conditions, made) : new IngestionBatches(dataSource, conditions);
@@ -117,7 +117,8 @@ internal sealed class SubmissionWorld : IAsyncDisposable
             new ContentWriter(dataSource, content),
             replication is null ? null : new ReplicationMarking(new ReplicationStore(dataSource), MarkingDerivation(), replication, marking ?? new TextBoundaries()),
             recognizer ?? AnsweringRecognizer.Finding(),
-            new Sanitizer(CompositionRoot.StepsOf(), new TextBoundaries()));
+            new Sanitizer(CompositionRoot.StepsOf(), new TextBoundaries()),
+            CompositionRoot.SwapOf());
 
     private static KeyDerivation MarkingDerivation()
     {

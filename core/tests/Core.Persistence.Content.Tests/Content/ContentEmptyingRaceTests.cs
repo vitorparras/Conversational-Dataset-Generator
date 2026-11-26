@@ -61,10 +61,10 @@ public sealed class ContentEmptyingRaceTests
         }
     }
 
+    /// <summary>An item with no map yet: an item holds one map not emptied (issue 102), so the map of the race is the first of the item, not a second one the database refuses at once.</summary>
     private static async Task<(long Curator, long Item)> ItemAsync(ContentWorld world)
     {
-        var texts = ItemTexts.PseudonymizedItem("texto bruto zqx", "texto sanitizado zqx", "texto pseudonimizado zqx");
-        var item = await world.Writer.AddPseudonymizedItemAsync(1, texts, TestContext.Current.CancellationToken);
+        var item = await world.Writer.AddItemTextAsync(1, ItemTexts.Of("texto bruto zqx", "texto sanitizado zqx"), TestContext.Current.CancellationToken);
         return (await world.PersonAsync("zqx-curator"), item);
     }
 

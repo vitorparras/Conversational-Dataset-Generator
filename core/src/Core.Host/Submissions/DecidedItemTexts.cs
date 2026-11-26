@@ -1,5 +1,6 @@
 using Core.Boundary.Contracts;
 using Core.Ingestion.Deciding;
+using Core.Ingestion.Pseudonymizing;
 using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Rerun;
@@ -27,11 +28,27 @@ internal static class DecidedItemTexts
         return new NewItemText(raw, null, stored) { Sanitization = Stored(clean) };
     }
 
+    /// <summary>The texts of the item as <see cref="Of"/> gives them, with the text the swap made of the sanitized one and an entry of the map for each marker and original it holds.</summary>
+    /// <param name="material">The material with the destination decided for every occurrence of every text.</param>
+    /// <param name="text">The position of the text in the material.</param>
+    /// <param name="raw">The text as it arrived.</param>
+    /// <param name="item">The sanitized text, and what the swap made of it.</param>
+    internal static NewItemText Swapped(DecidedMaterial material, int text, string raw, (SanitizedText Clean, Pseudonymized Swap) item)
+    {
+        ArgumentNullException.ThrowIfNull(item.Swap);
+        var plain = Of(material, text, raw, item.Clean);
+        return new NewItemText(raw, item.Swap.Text, plain.Occurrences!)
+        {
+            Sanitization = plain.Sanitization,
+            Map = [.. item.Swap.Entries.Select(entry => new NewMapEntry(entry.Marker.Text, entry.Original, entry.IsAuthor, OccurrenceDestination.Pseudonymize))],
+        };
+    }
+
     /// <summary>
     /// What the rerun of the steps in force makes of what the item holds, or none when the rerun refused an item whose destinations were never decided; the occurrences held keep no
-    /// part of speech nor role, which no step reads.
+    /// part of speech nor role, which no step reads. An item pseudonymized whose sanitized text changes is pseudonymized again by the swap, with the markers of its map.
     /// </summary>
-    internal static Resanitized? Rerun(SanitizationRerun steps, RerunSource held)
+    internal static Resanitized? Rerun(SanitizationRerun steps, PseudonymSwap swap, RerunSource held)
     {
         var decided = held.Occurrences?.Select(occurrence => new DecidedOccurrence(new Occurrence(occurrence.Start, occurrence.End, occurrence.Kind, "", ""), Decided(occurrence.Destination)));
         var produced = steps.Rerun(held.Raw, decided is null ? null : [.. decided], held.StoredText);
@@ -41,7 +58,14 @@ internal static class DecidedItemTexts
         }
 
         var stored = Stored(sanitized);
-        return new Resanitized(stored.Text, stored.Version, stored.Steps, stored.Trail, stored.Counts, stored.Untreated, produced.Identical);
+        var resanitized = new Resanitized(stored.Text, stored.Version, stored.Steps, stored.Trail, stored.Counts, stored.Untreated, produced.Identical);
+        if (held.Map is null || produced.Identical)
+        {
+            return resanitized;
+        }
+
+        var (text, map) = RerunSwapping.Again(swap, held, sanitized);
+        return resanitized with { Pseudonymized = text, Map = map };
     }
 
     private static ItemSanitization Stored(SanitizedText clean) => new()

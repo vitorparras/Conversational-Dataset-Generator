@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Core.Boundary.Fake;
 using Core.Host.Endpoints;
 using Core.Host.Submissions;
 using Core.Persistence.Ingestion;
@@ -70,6 +71,21 @@ public sealed class SubmissionCollisionTests
             (Simultaneous, kept, 0, kept * 2L, "true", true),
             (kept + told, open, entries.Count(entry => entry.State == BatchState.Accepted), await world.ItemRowsAsync(), chain, rejected.Length <= told && entries.Count == kept + rejected.Length));
         Assert.All(rejected, reason => Assert.Equal(SubmissionStoring.Collision, reason));
+    }
+
+    [DatabaseFact]
+    public async Task MarkersTheDatabaseNeverSerializesAreToldToTryAgainAndTheBatchIsRejectedForTheCollision()
+    {
+        await using var world = await SubmissionWorld.CreateAsync(recognizer: new FakeRecognizer());
+        await world.Database.ExecuteAsSuperuserAsync(
+            "CREATE FUNCTION public.zqx_markers_conflict() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog AS $f$ "
+            + "BEGIN RAISE EXCEPTION 'conflict' USING ERRCODE = '40001'; END $f$; "
+            + "CREATE TRIGGER zqx_markers_conflict BEFORE INSERT ON content.marker_in_use FOR EACH ROW EXECUTE FUNCTION public.zqx_markers_conflict()");
+
+        var outcome = await world.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(("ZQXANA", "ZQX-FAKE-PERSON-1 viu"), ("ZQXBETO", "e saiu"))));
+
+        var detail = await world.Service.DetailAsync([SubmissionWorld.Domain], outcome.Batch!.Value, TestContext.Current.CancellationToken);
+        Assert.Equal((SubmissionKind.Collided, BatchState.Rejected, SubmissionStoring.Collision, 0L), (outcome.Kind, detail!.State, detail.Reason, await world.ItemRowsAsync()));
     }
 
     [DatabaseFact]

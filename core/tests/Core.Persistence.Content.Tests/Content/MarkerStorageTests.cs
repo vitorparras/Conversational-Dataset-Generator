@@ -129,7 +129,7 @@ public sealed class MarkerStorageTests
     {
         await using var world = await ContentWorld.CreateAsync();
         var markers = PseudonymizedTexts.Draw(3);
-        var other = await AnotherBatchAsync(world);
+        var other = await AnotherBatchAsync(world, ConversationBatch);
         _ = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(1, 1, PseudonymizedTexts.Holding(markers[0]), Token)).ItemId);
         _ = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(1, other, PseudonymizedTexts.Holding(markers[1]), Token)).ItemId);
         var item = Assert.NotNull((await world.RealWriter.AddPseudonymizedItemAsync(1, other, PseudonymizedTexts.Holding(markers[2]), Token)).ItemId);

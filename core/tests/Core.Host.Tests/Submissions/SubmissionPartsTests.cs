@@ -114,13 +114,13 @@ public sealed class SubmissionPartsTests
     {
         await using var world = await SubmissionWorld.CreateAsync();
         await using var startup = new ServiceCollection().AddSingleton(world.DataSource).AddSingleton<IMasterKeySource>(new FixedKeySource(present: true)).BuildServiceProvider();
-        await world.Database.RunAsOwnerAsync("INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/1/v1'), ('texto-bruto/2/v1')");
+        await world.Database.RunAsOwnerAsync("INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/1/v1'), ('texto-bruto/2/v1'), ('mapa-reversao/1/v1'), ('mapa-reversao/2/v1')");
         await using var host = Hosted(startup);
         var holder = host.GetRequiredService<SubmissionServiceHolder>();
 
         using var first = await holder.GetAsync(TestContext.Current.CancellationToken);
         var before = await first!.Service.SubmitAsync(SubmissionWorld.Request(), TestContext.Current.CancellationToken);
-        await world.Database.RunAsOwnerAsync("INSERT INTO public.domain (name) VALUES ('zqx-domain-c')", "INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/3/v1')");
+        await world.Database.RunAsOwnerAsync("INSERT INTO public.domain (name) VALUES ('zqx-domain-c')", "INSERT INTO public.derivation_label (label) VALUES ('texto-bruto/3/v1'), ('mapa-reversao/3/v1')");
         using var next = await holder.GetAsync(TestContext.Current.CancellationToken);
         var after = await next!.Service.SubmitAsync(SubmissionWorld.Request() with { DomainId = 3 }, TestContext.Current.CancellationToken);
 
@@ -176,7 +176,7 @@ public sealed class SubmissionPartsTests
     /// <summary>A source of the master key that gives it, with the labels of three domains, or does not, as the test asks; each reading is a new one, as the file is read again.</summary>
     private sealed class FixedKeySource : IMasterKeySource
     {
-        private static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1", "texto-bruto/3/v1"];
+        private static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1", "texto-bruto/3/v1", "mapa-reversao/1/v1", "mapa-reversao/2/v1", "mapa-reversao/3/v1"];
 
         internal FixedKeySource(bool present)
         {

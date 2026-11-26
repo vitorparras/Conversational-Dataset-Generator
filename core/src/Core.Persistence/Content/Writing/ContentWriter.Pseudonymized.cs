@@ -5,7 +5,10 @@ using NpgsqlTypes;
 
 namespace Core.Persistence.Content.Writing;
 
-/// <summary>The writing of a pseudonymized item: the item, its map and its markers in one serializable transaction, or nothing (issue 101).</summary>
+/// <summary>
+/// The writing of a pseudonymized item: the item, its map and its markers in one serializable transaction, or nothing (issue 101); and the markers of a conversation held for its batch
+/// before its first item, all of them or none (issue 102).
+/// </summary>
 public sealed partial class ContentWriter
 {
     private const NpgsqlDbType TextArray = (NpgsqlDbType)((int)NpgsqlDbType.Array + (int)NpgsqlDbType.Text);
@@ -31,6 +34,34 @@ public sealed partial class ContentWriter
         return map.Any(entry => entry.Destination != OccurrenceDestination.Pseudonymize)
             ? throw new ArgumentException("Only an occurrence to pseudonymize becomes an entry of the map.", nameof(item))
             : AddPseudonymizedAsync(domainId, batchId, item, cancellationToken);
+    }
+
+    /// <summary>
+    /// Holds for the batch the markers drawn for its conversation, before any item of it is written, in one transaction: all of them, or none when another batch holds some, which are
+    /// named for the conversation to be drawn again without them (0057). A marker the batch holds already is held still.
+    /// </summary>
+    /// <param name="domainId">The domain of the batch.</param>
+    /// <param name="batchId">The batch the conversation came in with.</param>
+    /// <param name="markers">The markers the swap gave the items of the conversation.</param>
+    /// <param name="cancellationToken">Cancels the reservation.</param>
+    public Task<IReadOnlyList<string>> ReserveMarkersAsync(int domainId, long batchId, IReadOnlyList<string> markers, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(markers);
+        string[] given = [.. markers];
+        return WriteAsync<IReadOnlyList<string>>(
+            (domainId, IsolationLevel.Serializable),
+            async transaction =>
+            {
+                var kept = await HeldAsync(transaction, (domainId, batchId), given, cancellationToken).ConfigureAwait(false);
+                List<string> taken = [.. given.Where(marker => !kept.Contains(marker))];
+                if (taken.Count == 0)
+                {
+                    await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                }
+
+                return taken;
+            },
+            cancellationToken);
     }
 
     private async Task<PseudonymizedWrite> AddPseudonymizedAsync(int domainId, long batchId, NewItemText item, CancellationToken cancellationToken)

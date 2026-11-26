@@ -20,6 +20,7 @@ public sealed class MarkerStorageTests
     private const string UniqueViolation = "23505";
     private const string WithoutEvent = "CE005";
     private const string Held = "SELECT coalesce(string_agg(marker, ',' ORDER BY marker), '') FROM content.marker_in_use";
+    private const string HeldByBatch = "SELECT string_agg(batch_id || ':' || marker, ',' ORDER BY batch_id, marker) FROM content.marker_in_use";
     private const string OfItem = "SELECT coalesce(string_agg(marker, ',' ORDER BY marker), '') FROM content.item_marker WHERE item_id = @id";
     private const string OfItemWithAuthor = "SELECT string_agg(marker || ':' || author, ',' ORDER BY marker) FROM content.item_marker WHERE item_id = @id";
     private const string Items = "SELECT count(*) || ',' || (SELECT count(*) FROM content.reversal_map) FROM content.item_text";
@@ -81,6 +82,22 @@ public sealed class MarkerStorageTests
         var second = await world.RealWriter.AddPseudonymizedItemAsync(1, other, PseudonymizedTexts.Holding(marker), Token);
 
         Assert.Equal((null, marker, "1,1"), (second.ItemId, Assert.Single(second.Taken), (string?)await world.InDomainAsync(1, Items)));
+    }
+
+    [DatabaseFact]
+    public async Task ReservationMetByAMarkerOfAnotherBatchHoldsNoneOfItsMarkers()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var markers = PseudonymizedTexts.Draw(3);
+        var other = await AnotherBatchAsync(world);
+        var first = await world.RealWriter.ReserveMarkersAsync(1, 1, [markers[0]], Token);
+
+        var taken = await world.RealWriter.ReserveMarkersAsync(1, other, [markers[1], markers[0]], Token);
+        var again = await world.RealWriter.ReserveMarkersAsync(1, other, [markers[1], markers[2]], Token);
+
+        string[] held = [$"1:{markers[0]}", .. new[] { markers[1], markers[2] }.Order(StringComparer.Ordinal).Select(marker => $"{other}:{marker}")];
+        Assert.Equal((0, markers[0], 0), (first.Count, Assert.Single(taken), again.Count));
+        Assert.Equal(string.Join(',', held), (string?)await world.InDomainAsync(1, HeldByBatch));
     }
 
     [DatabaseFact]

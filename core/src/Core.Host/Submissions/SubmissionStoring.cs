@@ -41,7 +41,7 @@ internal static class SubmissionStoring
     /// <summary>The motive of the batch registered as rejected when the key that seals the content could not be read.</summary>
     internal const string KeyUnavailable = "content_key_unavailable";
 
-    /// <summary>Whether the raw text of an item of the domain can be sealed now: there is a key to seal with, under a label loaded, registered and not revoked.</summary>
+    /// <summary>Whether the texts and the map of an item of the domain can be sealed now: there is a key to seal each with, under a label loaded, registered and not revoked.</summary>
     /// <param name="sealing">The path that seals.</param>
     /// <param name="domainId">The domain of the batch.</param>
     internal static bool CanSeal(ProtectedContent? sealing, int domainId)
@@ -54,6 +54,7 @@ internal static class SubmissionStoring
         try
         {
             using var key = sealing.Begin(ContentColumns.ItemKey, domainId);
+            using var map = sealing.Begin(ContentColumns.MapKey, domainId);
             return true;
         }
         catch (InvalidOperationException)
@@ -86,14 +87,7 @@ internal static class SubmissionStoring
                 return Keeping.StepFailed;
             }
 
-            var written = new List<(long Item, ReadUnit Unit)>();
-            foreach (var ((unit, declared, position), clean) in kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form), positions).Zip(sanitized))
-            {
-                var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
-                var text = DecidedItemTexts.Of(decided, position, unit.Text, clean) with { Accommodation = accommodation };
-                written.Add((await intake.Writer!.AddItemTextAsync(kept.DomainId, kept.BatchId, text, cancellationToken).ConfigureAwait(false), unit));
-            }
-
+            var written = await SubmissionPseudonymizing.WriteAsync(intake, kept, new(decided, positions, sanitized), cancellationToken).ConfigureAwait(false);
             if (kept.Form == MaterialForm.Conversation && intake.Marking is { } marking)
             {
                 await marking.MarkAsync(kept.DomainId, kept.BatchId, written, cancellationToken).ConfigureAwait(false);

@@ -1,5 +1,3 @@
-using Core.Boundary.Contracts;
-using Core.Boundary.Text;
 using Core.Host.Submissions;
 using Core.Ingestion;
 using Core.Persistence.Ingestion;
@@ -63,31 +61,5 @@ public sealed class SubmissionCancellationTests
         var rule = new ReplicationRule(minLength: 10, minSenders: 2);
         var intake = SubmissionWorld.Intake(1_000_000, conditions, world.Content, world.DataSource, rule, new CancellingBoundaries(cancelling));
         return new SubmissionService(intake, world.Batches, world.DataSource, NullLogger.Instance);
-    }
-
-    /// <summary>The boundaries of a text that cancel the submission the first time the marking measures a message, and otherwise answer as the real ones.</summary>
-    private sealed class CancellingBoundaries : ITextBoundaries
-    {
-        private readonly TextBoundaries real = new();
-        private readonly CancellationTokenSource cancelling;
-
-        internal CancellingBoundaries(CancellationTokenSource cancelling)
-        {
-            this.cancelling = cancelling;
-        }
-
-        public bool SplitsPair(string text, int utf16Index) => real.SplitsPair(text, utf16Index);
-
-        public string Slice(string text, Occurrence occurrence) => real.Slice(text, occurrence);
-
-        public string Span(string text, int start, int until) => real.Span(text, start, until);
-
-        public IReadOnlyList<string> CodePoints(string text) => real.CodePoints(text);
-
-        public int CodePointCount(string text)
-        {
-            cancelling.Cancel();
-            return real.CodePointCount(text);
-        }
     }
 }

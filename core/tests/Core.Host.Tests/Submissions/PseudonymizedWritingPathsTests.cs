@@ -7,13 +7,14 @@ using Npgsql;
 namespace Core.Host.Tests.Submissions;
 
 /// <summary>
-/// No path that writes an item puts in the column of the pseudonymized text a text that did not go through the pseudonymization (issue 102, CA-4): the submission of the host writes none,
-/// and the writer, the rerun and the emptying each refuse the sanitized text put where the pseudonymized one goes, with no swap and no map.
+/// No path that writes an item puts in the column of the pseudonymized text a text that did not go through the pseudonymization (issue 102, CA-4): the submission of the host writes every
+/// item through the swap, with its map, and the writer, the rerun and the emptying each refuse the sanitized text put where the pseudonymized one goes, with no swap and no map.
 /// </summary>
 [Trait("Category", "Database")]
 public sealed class PseudonymizedWritingPathsTests
 {
-    private const string Pseudonymized = "SELECT count(*) FILTER (WHERE pseudonymized_text IS NOT NULL) || ',' || count(*) FROM content.item_text";
+    private const string Pseudonymized = "SELECT count(*) FILTER (WHERE pseudonymized_text IS NOT NULL) || ',' || (SELECT count(*) FROM content.reversal_map) || ',' || count(*) FROM content.item_text";
+    private const string Sealed = "SELECT string_agg(encode(pseudonymized_text, 'base64'), ',' ORDER BY id) FROM content.item_text";
     private const string Sanitized = "SELECT (sanitized_text IS NOT NULL)::text FROM content.item_text ORDER BY id LIMIT 1";
     private const string SanitizedAsPseudonymized = "UPDATE content.item_text SET pseudonymized_text = sanitized_text WHERE id = @item";
     private const string Resanitized = "INSERT INTO public.custody_event (actor_system, item_kind, item_id, step, reason, reference) "
@@ -22,6 +23,7 @@ public sealed class PseudonymizedWritingPathsTests
         + "VALUES (@person, false, 'item_text', @item, 'item_emptied', 'contract_requirement', 'zqx-1')";
 
     private const string ContentKept = "CE004";
+    private const string WithoutMap = "CE005";
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -31,6 +33,7 @@ public sealed class PseudonymizedWritingPathsTests
         await using var world = await SubmissionWorld.CreateAsync();
         var batch = (await world.SubmitAsync(SubmissionWorld.Request())).Batch!.Value;
         var submitted = Assert.Single(await world.StoredAsync(Pseudonymized));
+        var swapped = Assert.Single(await world.StoredAsync(Sealed));
         var item = long.Parse(Assert.Single(await world.StoredAsync("SELECT min(id)::text FROM content.item_text")), CultureInfo.InvariantCulture);
         var notSwapped = new NewItemText("texto bruto zqx", "texto sanitizado zqx", []) { Sanitization = ItemTexts.Sanitization("texto sanitizado zqx") };
 
@@ -40,11 +43,11 @@ public sealed class PseudonymizedWritingPathsTests
         var rerun = await Assert.ThrowsAsync<PostgresException>(() => InOneTransactionAsync(world, item, Resanitized, SanitizedAsPseudonymized));
         var emptying = await Assert.ThrowsAsync<PostgresException>(() => InOneTransactionAsync(world, item, Emptied, SanitizedAsPseudonymized));
 
-        // The item updated, the first one, holds a sanitized text, so the update changes the column; the rerun and the emptying meet the guard that keeps the texts of a row
-        // not emptied, never the shape of the event, and after all of them no item holds a pseudonymized text.
-        Assert.Equal(("0,", "true"), (submitted[..2], Assert.Single(await world.StoredAsync(Sanitized))));
-        Assert.Equal((ContentKept, ContentKept), (rerun.SqlState, emptying.SqlState));
-        Assert.Equal(submitted, Assert.Single(await world.StoredAsync(Pseudonymized)));
+        // The item updated, the first one, holds its sanitized and its pseudonymized texts each sealed on its own, so the update changes the column: the rerun meets, at its commit, the map it did
+        // not write, and the emptying the guard that lets the texts of a row change only with a rerun; after both, every item holds the pseudonymized text the swap gave it.
+        Assert.Equal(("2,2,2", "true"), (submitted, Assert.Single(await world.StoredAsync(Sanitized))));
+        Assert.Equal((WithoutMap, ContentKept), (rerun.SqlState, emptying.SqlState));
+        Assert.Equal(swapped, Assert.Single(await world.StoredAsync(Sealed)));
     }
 
     /// <summary>Runs the statements in one transaction of the owner, in the domain of the tests, and commits, so that a check put off to the commit runs too.</summary>

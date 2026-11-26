@@ -1,5 +1,6 @@
 using Core.Boundary.Contracts;
 using Core.Ingestion.Deciding;
+using Core.Ingestion.Pseudonymizing;
 using Core.Ingestion.Sanitizing;
 using Core.Persistence.Content;
 using Core.Persistence.Content.Rerun;
@@ -25,6 +26,22 @@ internal static class DecidedItemTexts
         ArgumentNullException.ThrowIfNull(clean);
         var stored = material.Of(text).Select(Stored).ToList();
         return new NewItemText(raw, null, stored) { Sanitization = Stored(clean) };
+    }
+
+    /// <summary>The texts of the item as <see cref="Of"/> gives them, with the text the swap made of the sanitized one and an entry of the map for each marker and original it holds.</summary>
+    /// <param name="material">The material with the destination decided for every occurrence of every text.</param>
+    /// <param name="text">The position of the text in the material.</param>
+    /// <param name="raw">The text as it arrived.</param>
+    /// <param name="item">The sanitized text, and what the swap made of it.</param>
+    internal static NewItemText Swapped(DecidedMaterial material, int text, string raw, (SanitizedText Clean, Pseudonymized Swap) item)
+    {
+        ArgumentNullException.ThrowIfNull(item.Swap);
+        var plain = Of(material, text, raw, item.Clean);
+        return new NewItemText(raw, item.Swap.Text, plain.Occurrences!)
+        {
+            Sanitization = plain.Sanitization,
+            Map = [.. item.Swap.Entries.Select(entry => new NewMapEntry(entry.Marker.Text, entry.Original, entry.IsAuthor, OccurrenceDestination.Pseudonymize))],
+        };
     }
 
     /// <summary>

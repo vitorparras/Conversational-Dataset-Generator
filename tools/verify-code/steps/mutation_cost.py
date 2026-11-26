@@ -7,7 +7,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from itertools import pairwise
 
-from steps.csharp_tokens import Token, strings, tokens
+from steps.csharp_tokens import ARROW, Token, strings, tokens
 
 #: What one mutant that runs the whole suite weighs, in tokens of other code. Stryker cannot say
 #: which tests reach a static initializer, so each of its mutants runs the whole suite (#683).
@@ -41,6 +41,33 @@ OPENERS = frozenset("{([")
 CLOSERS = frozenset("})]")
 ANGLES = frozenset("<>")
 STATIC = "static"
+#: What only code holds: a parameter list or a call, an initializer, an expression body.
+CODE = frozenset({"(", "=", ARROW})
+#: The words that begin a statement with no parenthesis or equals of its own.
+STATEMENTS = frozenset(
+    {"return", "throw", "yield", "await", "break", "continue", "goto", "try", "new"}
+    | {"checked", "unchecked", "unsafe", "fixed", "lock"}
+)
+ACCESSORS = frozenset({"get", "set", "init", "add", "remove"})
+STEPS = ("++", "--")
+
+
+class Cost(int):
+    """What a slice weighs, and what Stryker does with its mutants: ``suite`` when it tests each of
+    them against the whole suite, ``inert`` when the slice holds no code it could mutate."""
+
+    suite: bool
+    inert: bool
+
+    def __new__(cls, weight: int, suite: bool = False, inert: bool = False) -> Cost:
+        cost = super().__new__(cls, weight)
+        cost.suite = suite
+        cost.inert = inert
+        return cost
+
+    def times(self, factor: int) -> Cost:
+        """This cost ``factor`` times; a factor above one is a member every test runs through."""
+        return Cost(int(self) * factor, self.suite or factor > 1, self.inert)
 
 
 def top_level(found: list[Token], first: int, last: int) -> Iterator[int]:
@@ -150,18 +177,33 @@ def element_cuts(text: str, found: list[Token], first: int, last: int) -> list[i
     return [] if set(inside) & ANGLES else commas(found, opened, closed)
 
 
-def pieces(text: str, found: list[Token], first: int, last: int) -> list[tuple[int, int]]:
-    """The cuts of one member as ``(end, weight)``: the member itself, or its elements when it is
+def pieces(text: str, found: list[Token], first: int, last: int) -> list[tuple[int, Cost]]:
+    """The cuts of one member as ``(end, cost)``: the member itself, or its elements when it is
     a static initializer holding a list; the weight is the tokens, plus ``SUITE_MUTANT`` for each
-    literal of a static initializer, wherever it is cut."""
+    literal of a static initializer, wherever it is cut, and each cut of a static initializer is of
+    the suite."""
     member = found[first:last]
     static = static_initializer(member)
+    still = inert(text, found, first, last)
     inner = element_cuts(text, found, first, last) if static else []
     marks = [first, *inner, last]
-    return [
-        (b, max(1, b - a) + (literals(text, found, a, b) * SUITE_MUTANT if static else 0))
+    weights = (
+        max(1, b - a) + (literals(text, found, a, b) * SUITE_MUTANT if static else 0)
         for a, b in pairwise(marks)
-    ]
+    )
+    return [(b, Cost(w, static, still)) for b, w in zip(marks[1:], weights, strict=True)]
+
+
+def inert(text: str, found: list[Token], first: int, last: int) -> bool:
+    """Whether the member of ``found[first:last]`` holds no code Stryker could mutate: no call nor
+    parameter list, initializer, expression body, statement, accessor with a body, nor ``++`` or
+    ``--``. What might be code is read as code, so a member is inert only when it cannot hold any."""
+    kinds = [token.kind for token in found[first:last]]
+    start = found[first - 1].end if first > 0 else 0
+    end = found[last - 1].end if last > first else start
+    if (CODE | STATEMENTS) & set(kinds) or any(step in text[start:end] for step in STEPS):
+        return False
+    return not any(a in ACCESSORS and b == "{" for a, b in pairwise(kinds))
 
 
 def literals(text: str, found: list[Token], first: int, last: int) -> int:

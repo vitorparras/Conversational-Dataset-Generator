@@ -167,6 +167,26 @@ public sealed class ReversalRevelationTests
     }
 
     [DatabaseFact]
+    public async Task RevealedRequestTakesNoNewAuthorizationOnceItLapses()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var (item, marker) = await ReversalAsks.ItemAsync(world, 1);
+        var request = Assert.NotNull((await world.ReversalRequests.AskAsync(1, 3, ReversalAsks.Draft(item, marker), Token)).Id);
+        var second = await ReversalAsks.SecondCuratorAsync(world, $"zqx-curator-{marker}");
+        var until = DateTimeOffset.UtcNow.AddSeconds(3);
+        Assert.Equal(ReversalOutcome.Recorded, (await world.ReversalRequests.AuthorizeAsync(new ReversalAct(1, request, second), until, Token)).Outcome);
+        Assert.Equal(ReversalOutcome.Recorded, (await world.ReversalRevelations.RevealAsync(ByWhoAsked(request), Token)).Outcome);
+        var lapse = until - DateTimeOffset.UtcNow + TimeSpan.FromMilliseconds(300);
+        await Task.Delay(lapse > TimeSpan.Zero ? lapse : TimeSpan.Zero, Token);
+        var events = await ReversalAsks.CountAsync(world, ReversalAsks.CountEvents);
+
+        var renewed = await world.ReversalRequests.AuthorizeAsync(new ReversalAct(1, request, second), DateTimeOffset.UtcNow.AddDays(7), Token);
+
+        Assert.Equal((ReversalOutcome.Closed, ReversalState.Revealed), (renewed.Outcome, (await world.ReversalRequestReader.ReadAsync(1, request, Token))!.State));
+        Assert.Equal((1L, events), (await ReversalAsks.CountAsync(world, CountRevelations), await ReversalAsks.CountAsync(world, ReversalAsks.CountEvents)));
+    }
+
+    [DatabaseFact]
     public async Task TwoRevealPostsAtOnceRevealOnce()
     {
         await using var world = await ContentWorld.CreateAsync();

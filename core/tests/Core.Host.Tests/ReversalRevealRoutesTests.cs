@@ -126,6 +126,7 @@ public sealed class ReversalRevealRoutesTests
 
         Assert.Equal(HttpStatusCode.OK, again.Status);
         Assert.Contains($"Não revelado:</span> este pedido já foi revelado em {await world.ScalarAsync(RevealedDay)}.", again.Page, StringComparison.Ordinal);
+        Assert.Matches(AskAgain, again.Page);
         Assert.DoesNotContain(Original, again.Page, StringComparison.Ordinal);
         Assert.Equal(
             ($"reversal_authorization|{authorization}|reversal_denied|reversal_used||{world.Curator}|true", "1"),
@@ -162,6 +163,7 @@ public sealed class ReversalRevealRoutesTests
         var mine = await world.GetAsync(ScreenPaths.ReversalMineOf(request));
         var confirm = await world.GetAsync(ScreenPaths.ReversalRevealOf(request));
         var notYet = await world.GetAsync(ScreenPaths.ReversalRevealOf(pending));
+        var postedEarly = await world.PostAsync(ScreenPaths.ReversalRevealOf(pending), Nothing);
         var pendingPage = await world.GetAsync(ScreenPaths.ReversalMineOf(pending));
 
         Assert.Contains($"href=\"{ScreenPaths.ReversalRevealOf(request)}\">Revelar a identidade</a>", mine.Page, StringComparison.Ordinal);
@@ -173,6 +175,8 @@ public sealed class ReversalRevealRoutesTests
         Assert.Matches("<button id=\"revelar\" class=\"button button--danger\"[^>]*>Revelar agora</button>", confirm.Page);
         Assert.Contains($"href=\"{ScreenPaths.ReversalMineOf(request)}\">Voltar sem revelar</a>", confirm.Page, StringComparison.Ordinal);
         Assert.Equal((HttpStatusCode.SeeOther, ScreenPaths.ReversalMineOf(pending)), (notYet.Status, notYet.Location));
+        Assert.Equal((HttpStatusCode.SeeOther, ScreenPaths.ReversalMineOf(pending)), (postedEarly.Status, postedEarly.Location));
+        Assert.DoesNotContain(Original, postedEarly.Page, StringComparison.Ordinal);
         Assert.DoesNotContain(ScreenPaths.ReversalRevealOf(pending), pendingPage.Page, StringComparison.Ordinal);
         Assert.DoesNotContain(Original, confirm.Page, StringComparison.Ordinal);
         Assert.Equal((events, "0"), (await world.ScalarAsync(CountEvents), await world.ScalarAsync(CountRevelations)));

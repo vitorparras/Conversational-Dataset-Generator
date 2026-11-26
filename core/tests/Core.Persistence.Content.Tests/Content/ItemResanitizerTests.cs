@@ -232,7 +232,7 @@ public sealed class ItemResanitizerTests : IClassFixture<RerunDatabase>
         _ = await rerun.RequestAsync();
         var hold = await rerun.TakenAsync();
 
-        var refused = await Assert.ThrowsAsync<ArgumentNullException>(() => rerun.Resanitizer.ResanitizeAsync(hold, null!, TestContext.Current.CancellationToken));
+        var refused = await Assert.ThrowsAsync<ArgumentNullException>(() => rerun.Resanitizer.ResanitizeAsync(hold, (Func<RerunSource, Resanitized?>)null!, TestContext.Current.CancellationToken));
 
         Assert.Equal("rerun", refused.ParamName);
     }

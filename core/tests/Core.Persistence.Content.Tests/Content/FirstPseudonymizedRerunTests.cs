@@ -31,6 +31,9 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
         var rerun = await database.CaseAsync();
         var marker = PseudonymizedTexts.Draw(1)[0];
         var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.ItemAsync(Sanitized);
+        await rerun.EmptyAsync(await rerun.ItemAsync(Sanitized));
+        _ = await rerun.ItemAsync(Sanitized, await rerun.AnotherBatchAsync());
         _ = await rerun.RequestAsync();
         var seen = new List<RerunSource>();
 
@@ -40,8 +43,36 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
         Assert.Equal((PseudonymizedTexts.PseudonymizedOf([marker]), NewText), (await rerun.PseudonymizedTextAsync(item), await rerun.SanitizedAsync(item)));
         Assert.Equal(("1,1", $"{marker}:false|{marker}"), (await rerun.MapsOfAsync(item), await rerun.MarkersOfAsync(item)));
         var source = Assert.Single(seen);
-        Assert.Equal([RerunCase.Raw], source.Batch);
+        Assert.Equal([RerunCase.Raw, RerunCase.Raw], source.Batch);
         Assert.Equal((0, true), (source.Position, source.Map is null));
+    }
+
+    [DatabaseFact]
+    public async Task OldItemWhoseSanitizedComesOutTheSameGetsItsFirstOneAsWell()
+    {
+        var rerun = await database.CaseAsync();
+        var marker = PseudonymizedTexts.Draw(1)[0];
+        var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+
+        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), First(_ => marker, _ => { }, Sanitized), Token);
+
+        Assert.Equal(RerunOutcome.Identical, result.Outcome);
+        Assert.Equal((PseudonymizedTexts.PseudonymizedOf([marker]), Sanitized, "1,1"), (await rerun.PseudonymizedTextAsync(item), await rerun.SanitizedAsync(item), await rerun.MapsOfAsync(item)));
+        Assert.Equal(RerunCase.Target, await rerun.VersionAsync());
+    }
+
+    [DatabaseFact]
+    public async Task OldItemTheServiceDoesNotAnswerSpendsATryAndKeepsNoPseudonymized()
+    {
+        var rerun = await database.CaseAsync();
+        var item = await rerun.ItemAsync(Sanitized);
+        _ = await rerun.RequestAsync();
+
+        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), (_, _) => Task.FromResult(RerunAnswer.Unanswered), Token);
+
+        Assert.Equal((RerunOutcome.Failed, null), (result.Outcome, result.Refusal));
+        Assert.Equal((null, "0,0"), (await rerun.PseudonymizedTextAsync(item), await rerun.MapsOfAsync(item)));
     }
 
     [DatabaseFact]
@@ -77,19 +108,20 @@ public sealed class FirstPseudonymizedRerunTests : IClassFixture<RerunDatabase>
 
         Assert.Equal((RerunOutcome.Refused, RerunRefusal.PseudonymWithoutPair), (result.Outcome, result.Refusal));
         Assert.Equal([new RerunItemRefusal(item, rerun.DomainId, RerunRefusal.PseudonymWithoutPair)], (await rerun.ProgressAsync(requested.RerunId!.Value)).Refusals);
-        Assert.Equal(((string?)null, Sanitized, "0,0"), (await rerun.PseudonymizedTextAsync(item), await rerun.SanitizedAsync(item), await rerun.MapsOfAsync(item)));
+        Assert.Equal((null, Sanitized, "0,0"), (await rerun.PseudonymizedTextAsync(item), await rerun.SanitizedAsync(item), await rerun.MapsOfAsync(item)));
         var again = await rerun.RequestAsync(RerunCase.LaterSteps);
         Assert.Equal((RerunOutcome.Queued, 1L), (again.Outcome, (await rerun.ProgressAsync(again.RerunId!.Value)).Queued));
     }
 
     /// <summary>
-    /// The rerun to <see cref="NewText"/> that gives the item its first pseudonymized text, with the one marker the function picks for what it is given, keeping each source given.
+    /// The rerun to the text given, by default <see cref="NewText"/>, that gives the item its first pseudonymized text, with the one marker the function picks for what it is given,
+    /// keeping each source given.
     /// </summary>
-    private static Func<RerunSource, Resanitized> First(Func<RerunSource, string> marker, Action<RerunSource> seen) => source =>
+    private static Func<RerunSource, Resanitized> First(Func<RerunSource, string> marker, Action<RerunSource> seen, string text = NewText) => source =>
     {
         seen(source);
         var picked = marker(source);
-        return RerunCase.Rerunning(NewText)(source) with
+        return RerunCase.Rerunning(text)(source) with
         {
             Pseudonymized = PseudonymizedTexts.PseudonymizedOf([picked]),
             Map = [new NewMapEntry(picked, PseudonymizedTexts.OriginalOf(picked), false, OccurrenceDestination.Pseudonymize)],

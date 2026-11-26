@@ -60,6 +60,17 @@ public sealed class RerunAnswersTests
         Assert.Equal((SubmissionAnalysis.Language, ContractVersion.Current), (asked.Language, asked.ContractVersion));
     }
 
+    [Fact]
+    public async Task OldItemTakesTheGroupsOfItsOwnTextInTheBatch()
+    {
+        var answered = ItemRecognitionOutcome.Analyzed(new ItemAnalysisResponse([new GroupedOccurrence(1, 0, Place.Length, OccurrenceKinds.Location, "PROPN", "nsubj", 0)], [], "zqx-model-0102"));
+
+        var answer = await RerunAnswers.OfAsync(
+            Work(), () => new GroupsRecognizer(answered), Old(OccurrenceDestination.Pseudonymize) with { Batch = [Other, Raw], Position = 1 }, TestContext.Current.CancellationToken);
+
+        Assert.StartsWith("LUGAR_", Assert.IsType<Resanitized>(answer.Produced).Pseudonymized, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(1, 9, "LOCATION")]
     [InlineData(0, 8, "LOCATION")]
@@ -96,6 +107,17 @@ public sealed class RerunAnswersTests
 
     private static AnsweringRecognizer Answering(params Occurrence[] found) => new(RecognitionOutcome.Analyzed(new AnalysisResponse(found, "zqx-model-0102")));
 
-    private static Task<RerunAnswer> AnswerAsync(AnsweringRecognizer recognizer, RerunSource held) => RerunAnswers.OfAsync(
-        (new SanitizationRerun(new Sanitizer(CompositionRoot.StepsOf(), new TextBoundaries())), CompositionRoot.SwapOf()), () => recognizer, held, TestContext.Current.CancellationToken);
+    private static Task<RerunAnswer> AnswerAsync(AnsweringRecognizer recognizer, RerunSource held) =>
+        RerunAnswers.OfAsync(Work(), () => recognizer, held, TestContext.Current.CancellationToken);
+
+    private static (SanitizationRerun, Ingestion.Pseudonymizing.PseudonymSwap) Work() =>
+        (new SanitizationRerun(new Sanitizer(CompositionRoot.StepsOf(), new TextBoundaries())), CompositionRoot.SwapOf());
+
+    /// <summary>A recognizer that answers every item with the groups given, as they are, wherever the texts are.</summary>
+    private sealed class GroupsRecognizer(ItemRecognitionOutcome answered) : IRecognizer
+    {
+        public Task<RecognitionOutcome> RecognizeAsync(AnalysisRequest request, CancellationToken cancellationToken) => throw new InvalidOperationException("Only the item is asked.");
+
+        public Task<ItemRecognitionOutcome> RecognizeItemAsync(ItemAnalysisRequest request, CancellationToken cancellationToken) => Task.FromResult(answered);
+    }
 }

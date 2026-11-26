@@ -35,10 +35,7 @@ public sealed class OccurrencePairingTests
     }
 
     [Fact]
-    public void ItemWithNoStoredOccurrenceIsPairedEmpty()
-    {
-        Assert.Empty(OccurrencePairing.Paired([], [Found(0, 0, 4, "PERSON", 1)], 0)!);
-    }
+    public void ItemWithNoStoredOccurrenceIsPairedEmpty() => Assert.Empty(OccurrencePairing.Paired([], [Found(0, 0, 4, "PERSON", 1)], 0)!);
 
     private static DecidedOccurrence Held(int start, int end, string kind, Destination destination) => new(new Occurrence(start, end, kind, "", ""), destination);
 

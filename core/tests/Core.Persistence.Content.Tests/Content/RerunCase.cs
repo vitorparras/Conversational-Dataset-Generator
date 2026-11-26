@@ -74,9 +74,9 @@ internal sealed class RerunCase
         version is null ? [0, 2] : [0],
         string.Equals(text, source.StoredText, StringComparison.Ordinal));
 
-    /// <summary>An item of the accepted batch of the domain, sanitized by the list the tests of the content write with.</summary>
-    public Task<long> ItemAsync(string sanitized) =>
-        new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, DomainId, ItemTexts.Of(Raw, sanitized), TestContext.Current.CancellationToken);
+    /// <summary>An item of the accepted batch of the domain, or of the batch given, sanitized by the list the tests of the content write with.</summary>
+    public Task<long> ItemAsync(string sanitized, long? batch = null) =>
+        new ContentWriter(application, custody.Content).AddItemTextAsync(DomainId, batch ?? DomainId, ItemTexts.Of(Raw, sanitized), TestContext.Current.CancellationToken);
 
     /// <summary>An item of the accepted batch of the domain written before the destinations were decided: with no occurrences and no sanitization.</summary>
     public Task<long> UndecidedItemAsync() =>

@@ -18,7 +18,7 @@ public sealed class SubmissionDrawsTests
     {
         var asked = new List<string[]>();
 
-        var swapped = await SubmissionPseudonymizing.SwappedAsync(CompositionRoot.SwapOf(), (TwoMessages, true), markers =>
+        var swapped = await ConversationDraws.SwappedAsync(CompositionRoot.SwapOf(), (TwoMessages, true), markers =>
         {
             asked.Add(markers);
             return Task.FromResult<IReadOnlyList<string>>(asked.Count == 1 ? [markers[0]] : []);
@@ -34,13 +34,13 @@ public sealed class SubmissionDrawsTests
     {
         var asked = 0;
 
-        _ = await Assert.ThrowsAsync<InvalidOperationException>(() => SubmissionPseudonymizing.SwappedAsync(CompositionRoot.SwapOf(), (TwoMessages, true), markers =>
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(() => ConversationDraws.SwappedAsync(CompositionRoot.SwapOf(), (TwoMessages, true), markers =>
         {
             asked++;
             return Task.FromResult<IReadOnlyList<string>>(markers);
         }));
 
-        Assert.Equal(SubmissionPseudonymizing.Draws, asked);
+        Assert.Equal(ConversationDraws.Draws, asked);
     }
 
     [Theory]
@@ -48,7 +48,7 @@ public sealed class SubmissionDrawsTests
     [InlineData(false, 2)]
     public async Task OnlyTheMessagesOfAConversationShareTheMarkerOfAGroup(bool conversation, int markers)
     {
-        var swapped = await SubmissionPseudonymizing.SwappedAsync(CompositionRoot.SwapOf(), (TwoMessages, conversation), _ => Task.FromResult<IReadOnlyList<string>>([]));
+        var swapped = await ConversationDraws.SwappedAsync(CompositionRoot.SwapOf(), (TwoMessages, conversation), _ => Task.FromResult<IReadOnlyList<string>>([]));
 
         Assert.Equal(markers, MarkersOf(swapped).Distinct(StringComparer.Ordinal).Count());
     }

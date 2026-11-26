@@ -16,6 +16,11 @@ from steps.csharp_tokens import ARROW, Token, strings, tokens
 #: preparation takes 4,5 to 5 min, so one of these mutants costs about 2,1 min and a token about
 #: 0,011, some 190 tokens. Each literal of a static initializer, a string or a boolean, is one.
 SUITE_MUTANT = 200
+#: What capturing the coverage of each test weighs, which Stryker does in a part with a mutant
+#: outside the suite and skips in one with only mutants of the suite (#935): in part 16 of
+#: ``Core.Persistence.Content`` it ran the 640 tests one by one in 335 s, and a mutant of the suite
+#: took 157 s, so it weighs some two of those.
+COVERAGE = 425
 BOOLEANS = frozenset({"true", "false"})
 #: The methods of a file, by its path in the project and their signature (name and parameters),
 #: that every test of the area runs through, so that Stryker tests each of their mutants against

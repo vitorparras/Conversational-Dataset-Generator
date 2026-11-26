@@ -34,9 +34,9 @@ e na mesma transação, nunca antes do primeiro item; e o motivo pseudonym_of_re
 lote ao chegar entrada de outro destino. Ler um mapa usa reversal_entries_read, um por mapa. O
 esvaziamento zera o mapa (0010, linha 21) e apaga os marcadores; a reexecução da B só os guarda.
 
-**F3, `pseudonymization-wiring`.** marker_in_use ganha o lote, e item_marker perde o único por
-marcador: o marcador novo ao item vem do sorteio da transação ou do lote do item, nunca de outro
-(0057). O item_resanitized passa a exigir o pseudonimizado e o mapa novos, e o anterior é esvaziado
+**F3, `pseudonymization-wiring`.** marker_in_use ganha o lote; item_marker fica só com o único por
+(item, marcador). O marcador novo ao item vem do sorteio da transação ou do lote do item, nunca de
+outro (0057). O item_resanitized exige o pseudonimizado e o mapa novos, e o anterior é esvaziado
 (UPDATE só nas colunas do esvaziamento). O motivo pseudonym_without_pair recusa o item sem par.
 
 ## Fatia C

@@ -49,3 +49,7 @@ Não exige separar homônimos na mesma conversa: pela regra por nome da
 [0060](../decisoes/0060-correferencia-na-resposta-da-fronteira.md), dois participantes com o mesmo
 nome de origem na mesma conversa dividem o rótulo. É limite declarado; em conversas distintas, os
 rótulos seguem distintos.
+
+Não exige o mesmo rótulo entre as mensagens de uma conversa gravada antes da F3
+([0057](../decisoes/0057-escopo-do-marcador-e-a-conversa.md), emenda): cada mensagem antiga recebe
+os seus. É limite declarado; a conversa gravada depois segue o primeiro critério.

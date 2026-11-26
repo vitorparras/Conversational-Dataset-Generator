@@ -50,6 +50,9 @@ recebia um marcador em cada mensagem, contra o primeiro critério do
 [requisito 006](../requisitos/006-pseudonimizacao-preserva-contexto.md) (linha 28) e a
 [fatia F](../arquitetura/fases/005-pseudonimizacao/fatia-f-correferencia.md), cujo grupo cobre a
 conversa inteira. O resto não muda: nenhum marcador em outra conversa ou domínio, nem mapa alheio.
+Limite: os itens gravados antes da F3 não compartilham marcador entre si, porque não guardam o
+autor e recebem o primeiro pseudonimizado cada um no seu; o pedido por lote só melhora o grupo
+dentro da mensagem.
 
 ## O que reabre
 

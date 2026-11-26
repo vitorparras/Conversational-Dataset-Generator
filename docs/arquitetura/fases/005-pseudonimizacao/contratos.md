@@ -37,9 +37,9 @@ porque o item ainda não existe.
 **Mapa do item.** Um sorteio por conversa, sem abrir mapa de outro item (0057). Na reexecução, a F3
 abre o mapa do item, com a leitura registrada antes, e reaproveita cada marcador pelo original.
 
-**Gravador.** `ContentWriter.AddPseudonymizedItemAsync` grava numa transação o item, o
-pseudonimizado e o mapa selados e os marcadores, ou nada se um marcador já foi tomado; o banco
-recusa pseudonimizado sem mapa. `IngestionBatches.AcceptAsync` grava batch_pseudonymized no aceite.
+**Gravador.** `ContentWriter.AddPseudonymizedItemAsync` grava numa transação item, pseudonimizado e
+mapa selados e marcadores, ou nada se outro lote tomou um marcador (o do próprio lote vale, 0057);
+o banco recusa pseudonimizado sem mapa. `IngestionBatches.AcceptAsync` grava batch_pseudonymized.
 
 ## Fatias C e D
 

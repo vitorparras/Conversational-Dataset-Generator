@@ -202,7 +202,7 @@ def pieces(text: str, found: list[Token], first: int, last: int) -> list[tuple[i
 def inert(text: str, found: list[Token], first: int, last: int) -> bool:
     """Whether the member of ``found[first:last]`` holds no code Stryker could mutate: no call nor
     parameter list, initializer, expression body, statement, accessor with a body, nor ``++`` or
-    ``--``. What might be code is read as code, so a member is inert only when it cannot hold any."""
+    ``--``. What might be code is read as code: a member is inert only when it cannot hold any."""
     kinds = [token.kind for token in found[first:last]]
     start = found[first - 1].end if first > 0 else 0
     end = found[last - 1].end if last > first else start

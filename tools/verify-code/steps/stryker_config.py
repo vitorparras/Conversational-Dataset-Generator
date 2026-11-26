@@ -20,8 +20,8 @@ def configuration(project: str, patterns: tuple[str, ...], tests: tuple[Path, ..
     """The Stryker configuration of one module; Stryker never reproves, the step judges. It sets
     no method filter: that one hides the whole call chain, so what the 017 leaves out is filtered
     from the report (`read_stryker`). One worker in every module keeps the verdicts the same from
-    one run to the next. A part whose every slice is of the suite or inert skips the coverage of each
-test: Stryker runs the whole suite for each of those mutants anyway (#935)."""
+    one run to the next. A part whose every slice is of the suite or inert skips the coverage of
+    each test: Stryker runs the whole suite for each of those mutants anyway (#935)."""
     options = {
         "project": f"{project}.csproj",
         "test-projects": [str(path) for path in tests],
@@ -48,5 +48,7 @@ def suite_only(project: Path, patterns: tuple[str, ...]) -> bool:
             return False
         spans = [(int(a), int(b)) for a, b in SPAN.findall(pattern)] or [(0, UNBOUNDED)]
         cut = slices(path.read_bytes().decode("utf-8-sig"), SUITE_WIDE.get(name, frozenset()))
-        held += [Slice(name, a, b, w) for a, b, w in cut if any(s <= a and b <= e for s, e in spans)]
+        held += [
+            Slice(name, a, b, w) for a, b, w in cut if any(s <= a and b <= e for s, e in spans)
+        ]
     return bool(held) and bare(held)

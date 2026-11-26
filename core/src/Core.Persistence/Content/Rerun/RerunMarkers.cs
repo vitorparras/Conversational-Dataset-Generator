@@ -36,7 +36,7 @@ internal static class RerunMarkers
         var batch = await BatchOfAsync(scope, work.Hold.ItemId, cancellationToken).ConfigureAwait(false);
         var taken = new HashSet<string>(StringComparer.Ordinal);
         var draw = 1;
-        while (await LostAsync(scope, (work.Hold.DomainId, batch), (held, produced.Map!), cancellationToken).ConfigureAwait(false) is { Count: > 0 } lost)
+        while (await LostAsync(scope, (work.Hold.DomainId, batch), (held, produced.Map), cancellationToken).ConfigureAwait(false) is { Count: > 0 } lost)
         {
             taken.UnionWith(lost);
             var next = draw++ < Draws ? await work.Rerun(source with { Taken = taken.ToHashSet(StringComparer.Ordinal) }, cancellationToken).ConfigureAwait(false) : null;

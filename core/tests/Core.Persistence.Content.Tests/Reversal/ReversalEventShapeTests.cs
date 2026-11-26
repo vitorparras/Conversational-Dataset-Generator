@@ -120,7 +120,7 @@ public sealed class ReversalEventShapeTests
     [InlineData("TRUNCATE content.reversal_request CASCADE")]
     [InlineData("UPDATE content.reversal_authorization SET valid_until = valid_until + interval '1 day'")]
     [InlineData("DELETE FROM content.reversal_authorization")]
-    [InlineData("TRUNCATE content.reversal_authorization")]
+    [InlineData("TRUNCATE content.reversal_authorization CASCADE")]
     public async Task RequestRowsCannotBeChanged(string statement)
     {
         await using var world = await ContentWorld.CreateAsync();

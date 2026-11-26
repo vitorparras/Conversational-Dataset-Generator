@@ -25,7 +25,7 @@
         break;
     default:
         <h1>Pedido @Request.Id</h1>
-        <Notice Kind="Notice.Tone.Error" Label="Não revelado">@Reason</Notice>
+        <Notice Kind="Notice.Tone.Error" Lead="Não revelado">@Reason</Notice>
         <div class="actions">
             @if (Showing is Shown.Expired or Shown.Used)
             {

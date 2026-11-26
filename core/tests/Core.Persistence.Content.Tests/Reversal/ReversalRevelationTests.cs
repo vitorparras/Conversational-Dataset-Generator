@@ -109,7 +109,7 @@ public sealed class ReversalRevelationTests
 
         var sequence = (long)(await world.ScalarAsync("SELECT sequence FROM public.custody_event WHERE step = 'reversal_revealed'"))!;
         await world.Database.ExecuteAsSuperuserAsync(
-            "ALTER TABLE public.custody_event DISABLE TRIGGER custody_event_never_changed; UPDATE public.custody_event SET reference = '1' WHERE step = 'reversal_revealed'; "
+            "ALTER TABLE public.custody_event DISABLE TRIGGER custody_event_never_changed; UPDATE public.custody_event SET reference = reference || '9' WHERE step = 'reversal_revealed'; "
             + "ALTER TABLE public.custody_event ENABLE ALWAYS TRIGGER custody_event_never_changed");
         var verified = await new CustodyVerifier(world.DataSource, TimeProvider.System).VerifyAsync(Token);
         Assert.Equal(sequence, verified.FirstInconsistent?.Sequence);

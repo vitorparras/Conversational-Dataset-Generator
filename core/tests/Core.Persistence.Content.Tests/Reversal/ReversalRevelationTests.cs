@@ -213,7 +213,7 @@ public sealed class ReversalRevelationTests
 
         Assert.Equal((ReversalOutcome.NotRecorded, null), (revealed.Outcome, revealed.Identity));
         _ = Assert.NotNull(revealed.RevealedAt);
-        _ = Assert.NotNull(revealed.Refusal);
+        Assert.Equal(CustodyOutcome.ChainBroken, revealed.Refusal?.Outcome);
         Assert.Equal((1L, 1L, 0L), (await ReversalAsks.CountAsync(world, CountRevelations), await CountOfStepAsync(world, "reversal_revealed"),
             await CountOfStepAsync(world, "reversal_entries_read")));
     }

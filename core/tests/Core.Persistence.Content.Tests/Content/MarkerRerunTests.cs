@@ -2,6 +2,7 @@ using Core.Persistence.Content;
 using Core.Persistence.Content.Rerun;
 using Core.Persistence.Content.Writing;
 using Core.Persistence.Tests.Fixtures;
+using Npgsql;
 
 namespace Core.Persistence.Tests.Content;
 
@@ -35,7 +36,7 @@ public sealed class MarkerRerunTests : IClassFixture<RerunDatabase>
         var seen = new List<RerunSource>();
 
         // The rerun says the marker it kept stands for an author: the row the item holds is not written again, so it stays as the first writing left it.
-        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), Remapping(_ => [Entry(kept, true), Entry(added)], seen), Token);
+        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), Remapping(_ => [Entry(kept, true), Entry(added)], seen.Add), Token);
 
         Assert.Equal(RerunOutcome.Replaced, result.Outcome);
         Assert.Equal($"{Joined($"{kept}:false", $"{added}:false")}|{Joined(kept, added)}", await rerun.MarkersOfAsync(item));
@@ -71,7 +72,7 @@ public sealed class MarkerRerunTests : IClassFixture<RerunDatabase>
         _ = await rerun.RequestAsync();
         var seen = new List<RerunSource>();
 
-        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), Remapping(source => source.Taken.Contains(y) ? [Entry(x), Entry(z)] : [Entry(x), Entry(y)], seen), Token);
+        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), Remapping(source => source.Taken.Contains(y) ? [Entry(x), Entry(z)] : [Entry(x), Entry(y)], seen.Add), Token);
 
         Assert.Equal(RerunOutcome.Replaced, result.Outcome);
         Assert.Equal(["", y], seen.Select(source => string.Join(',', source.Taken)));
@@ -90,16 +91,48 @@ public sealed class MarkerRerunTests : IClassFixture<RerunDatabase>
         var held = await rerun.TakenAsync();
         var seen = new List<RerunSource>();
 
-        _ = await Assert.ThrowsAsync<InvalidOperationException>(() => rerun.Resanitizer.ResanitizeAsync(held, Remapping(_ => [Entry(x), Entry(y)], seen), Token));
+        _ = await Assert.ThrowsAsync<InvalidOperationException>(() => rerun.Resanitizer.ResanitizeAsync(held, Remapping(_ => [Entry(x), Entry(y)], seen.Add), Token));
 
         Assert.Equal((RerunMarkers.Draws, true), (seen.Count, seen[^1].Taken.Contains(y)));
         Assert.Equal(($"{x}:false|{Joined(x, y)}", $"{y}:false|{Joined(x, y)}"), (await rerun.MarkersOfAsync(a), await rerun.MarkersOfAsync(b)));
     }
 
-    /// <summary>The rerun to <see cref="NewText"/> that pseudonymizes the item again with the map the function gives for what it is given, keeping each source it was given.</summary>
-    private static Func<RerunSource, Resanitized> Remapping(Func<RerunSource, NewMapEntry[]> map, ICollection<RerunSource>? seen = null) => source =>
+    [DatabaseFact]
+    public async Task RerunDrawsAgainWithoutAMarkerAnotherItemOfItsBatchHolds()
     {
-        seen?.Add(source);
+        var rerun = await database.CaseAsync();
+        var markers = PseudonymizedTexts.Draw(3);
+        var (x, y, z) = (markers[0], markers[1], markers[2]);
+        var a = Assert.NotNull((await rerun.PseudonymizedAsync(PseudonymizedTexts.Holding(x))).ItemId);
+        var b = Assert.NotNull((await rerun.PseudonymizedAsync(PseudonymizedTexts.Holding(y))).ItemId);
+        _ = await rerun.RequestAsync();
+        var seen = new List<RerunSource>();
+
+        var result = await rerun.Resanitizer.ResanitizeAsync(await rerun.TakenAsync(), Remapping(source => source.Taken.Contains(y) ? [Entry(x), Entry(z)] : [Entry(x), Entry(y)], seen.Add), Token);
+
+        Assert.Equal(RerunOutcome.Replaced, result.Outcome);
+        Assert.Equal(["", y], seen.Select(source => string.Join(',', source.Taken)));
+        Assert.Equal(($"{Joined($"{x}:false", $"{z}:false")}|{Joined(x, y, z)}", $"{y}:false|{Joined(x, y, z)}"), (await rerun.MarkersOfAsync(a), await rerun.MarkersOfAsync(b)));
+    }
+
+    [DatabaseFact]
+    public async Task PseudonymizedItemRefusesANewSanitizedTextWithoutANewPseudonymizedOne()
+    {
+        var rerun = await database.CaseAsync();
+        var item = Assert.NotNull((await rerun.PseudonymizedAsync(PseudonymizedTexts.Holding(PseudonymizedTexts.Draw(1)))).ItemId);
+        var before = await rerun.SanitizedAsync(item);
+        _ = await rerun.RequestAsync();
+        var held = await rerun.TakenAsync();
+
+        var refused = await Assert.ThrowsAsync<PostgresException>(() => rerun.Resanitizer.ResanitizeAsync(held, RerunCase.Rerunning(NewText), Token));
+
+        Assert.Equal(("CE004", before), (refused.SqlState, await rerun.SanitizedAsync(item)));
+    }
+
+    /// <summary>The rerun to <see cref="NewText"/> that pseudonymizes the item again with the map the function gives for what it is given, keeping each source it was given.</summary>
+    private static Func<RerunSource, Resanitized> Remapping(Func<RerunSource, NewMapEntry[]> map, Action<RerunSource>? seen = null) => source =>
+    {
+        seen?.Invoke(source);
         var entries = map(source);
         return RerunCase.Rerunning(NewText)(source) with { Pseudonymized = PseudonymizedTexts.PseudonymizedOf(entries.Select(entry => entry.Marker)), Map = entries };
     };

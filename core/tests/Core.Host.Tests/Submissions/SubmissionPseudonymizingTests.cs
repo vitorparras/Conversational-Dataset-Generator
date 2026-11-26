@@ -84,7 +84,8 @@ public sealed partial class SubmissionPseudonymizingTests
         var maps = await SealedColumns.OpenedAsync(world, ContentColumns.Entries, "reversal_map");
         Assert.Equal([$"0:{ana}:true", $"1:{beto}:true", $"2:{ana}:true"], markers);
         Assert.NotEqual(ana, beto);
-        bool[] held = [maps[0].Contains("ZQXANA", StringComparison.Ordinal), maps[1].Contains("ZQXBETO", StringComparison.Ordinal), maps[2].Contains(ana, StringComparison.Ordinal)];
+        static string Entry(string marker, string author) => $"{{\"marker\":\"{marker}\",\"original\":\"{author}\",\"author\":true}}";
+        bool[] held = [.. maps.Zip([Entry(ana, "ZQXANA"), Entry(beto, "ZQXBETO"), Entry(ana, "ZQXANA")], (map, entry) => map.Contains(entry, StringComparison.Ordinal))];
         Assert.Equal([true, true, true], held);
     }
 

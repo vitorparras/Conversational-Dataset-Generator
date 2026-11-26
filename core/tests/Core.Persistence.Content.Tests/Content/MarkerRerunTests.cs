@@ -45,6 +45,23 @@ public sealed class MarkerRerunTests : IClassFixture<RerunDatabase>
     }
 
     [DatabaseFact]
+    public async Task NewMarkerOfTwoOriginalsStandsForAnAuthorWhenOneOfThemIs()
+    {
+        var rerun = await database.CaseAsync();
+        var markers = PseudonymizedTexts.Draw(2);
+        var (kept, added) = (markers[0], markers[1]);
+        var item = Assert.NotNull((await rerun.PseudonymizedAsync(PseudonymizedTexts.Holding(kept))).ItemId);
+        _ = await rerun.RequestAsync();
+
+        // Only the second original of the new marker is the author: the marker stands for an author all the same.
+        var result = await rerun.Resanitizer.ResanitizeAsync(
+            await rerun.TakenAsync(), Remapping(_ => [Entry(kept), Entry(added), new(added, "ZQXAUTORA", true, OccurrenceDestination.Pseudonymize)]), Token);
+
+        Assert.Equal(RerunOutcome.Replaced, result.Outcome);
+        Assert.Equal($"{Joined($"{kept}:false", $"{added}:true")}|{Joined(kept, added)}", await rerun.MarkersOfAsync(item));
+    }
+
+    [DatabaseFact]
     public async Task MarkerGoneFromTheTextStaysReserved()
     {
         var rerun = await database.CaseAsync();

@@ -71,11 +71,12 @@ public sealed class ProtectedContentStorageTests
         var writer = new ContentWriter(dataSource, custody.Content);
 
         Assert.Equal(
-            ["item", "map", "map.Entries"],
+            ["item", "map", "map.Entries", "markers"],
             [
                 (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.AddItemTextAsync(1, 1, null!, TestContext.Current.CancellationToken))).ParamName,
                 (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.AddReversalMapAsync(1, null!, TestContext.Current.CancellationToken))).ParamName,
                 (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.AddReversalMapAsync(1, new NewReversalMap(1, 1, null!), TestContext.Current.CancellationToken))).ParamName,
+                (await Assert.ThrowsAsync<ArgumentNullException>(() => writer.ReserveMarkersAsync(1, 1, null!, TestContext.Current.CancellationToken))).ParamName,
             ]);
     }
 }

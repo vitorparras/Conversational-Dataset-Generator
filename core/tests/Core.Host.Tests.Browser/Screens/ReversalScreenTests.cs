@@ -17,6 +17,7 @@ namespace Core.Host.Tests.Browser.Screens;
 public sealed class ReversalScreenTests(BrowserFixture browser, ReversalHostFixture reversal) : IClassFixture<ReversalHostFixture>
 {
     private const string Ask = "/reversao/pedir";
+    private const string RevealWait = "Registrando a revelação. A identidade aparece em seguida, uma só vez.";
     private const string FocusIsSeen =
         "() => { const s = getComputedStyle(document.activeElement); return document.activeElement.matches(':focus-visible') && s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0; }";
 
@@ -136,12 +137,19 @@ public sealed class ReversalScreenTests(BrowserFixture browser, ReversalHostFixt
     public async Task DoubleClickOnRevealShowsTheIdentityAndNotTheDenial()
     {
         var (request, item, marker) = await reversal.Case.AuthorizedAsync();
-        await using var tab = await EmptyingPages.OpenAsync(browser, reversal.Host, reversal.Host.Curator, $"/reversao/meus-pedidos/{request}/revelar");
+        var confirm = $"/reversao/meus-pedidos/{request}/revelar";
+        await using var tab = await EmptyingPages.OpenAsync(browser, reversal.Host, reversal.Host.Curator, confirm);
+        _ = await tab.Page.AddInitScriptAsync(EntryScreenTests.SubmitRecorder);
+        _ = await tab.Page.GotoAsync(confirm);
 
         await tab.Page.Locator("#revelar").DblClickAsync();
 
         await Expect(tab.Page.GetByRole(AriaRole.Heading, new() { Name = $"{marker}, item {item}", Exact = true, Level = 1 })).ToBeVisibleAsync();
         await Expect(tab.Page.GetByText(ReversalCase.Original, new() { Exact = true })).ToBeVisibleAsync();
+        var submits = await tab.Page.EvaluateAsync<string[][]>("() => JSON.parse(sessionStorage.getItem('submits') || '[]')");
+        Assert.Equal(2, submits.Length);
+        Assert.Equal(["false", "true", RevealWait], submits[0]);
+        Assert.Equal(["true", "true", RevealWait], submits[1]);
     }
 
     /// <summary>The page in the light on the phone and on the common width of a notebook, kept when the run asks for captures; the width of the checks comes back after.</summary>

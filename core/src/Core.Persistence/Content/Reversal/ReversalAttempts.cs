@@ -8,7 +8,8 @@ namespace Core.Persistence.Content.Reversal;
 /// <summary>Runs an act on a request in a serializable transaction with its event, again while it conflicts with another, up to three times.</summary>
 internal static class ReversalAttempts
 {
-    private const int Attempts = 3;
+    /// <summary>How many times an act that conflicts with another is run, the first included.</summary>
+    internal const int Attempts = 3;
 
     /// <summary>Runs the act until it is not a conflict with another, up to three times.</summary>
     internal static async Task<ReversalResult> RetriedAsync(

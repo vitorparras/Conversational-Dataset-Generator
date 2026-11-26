@@ -11,6 +11,10 @@ internal static class MapEntryJson
     internal static string Write(IEnumerable<NewMapEntry> entries) =>
         JsonSerializer.Serialize(entries.Select(entry => new Row(entry.Marker, entry.Original, entry.Author)).ToList(), Options);
 
+    /// <summary>The original the marker stands for among the entries opened; none when the marker is not among them.</summary>
+    internal static string? OriginalOf(string entries, string marker) =>
+        JsonSerializer.Deserialize<List<Row>>(entries, Options)?.Find(entry => string.Equals(entry.Marker, marker, StringComparison.Ordinal))?.Original;
+
     internal static List<NewMapEntry> Read(string entries) =>
         [.. (JsonSerializer.Deserialize<List<Row>>(entries, Options) ?? []).Select(row => new NewMapEntry(row.Marker, row.Original, row.Author, OccurrenceDestination.Pseudonymize))];
 

@@ -123,7 +123,8 @@ internal static class CompositionRoot
     internal static Persistence.Ingestion.SampleTextReader SampleTextOf(NpgsqlDataSource source, MasterKeyReading reading, IReadOnlySet<string> known) => new(source, ContentOf(reading, known));
     internal static Persistence.Content.Rerun.ItemResanitizer ResanitizerOf(NpgsqlDataSource source, ProtectedContent content, TimeProvider time) => new(source, content, time);
     internal static ReversalAccess ReversalOf(NpgsqlDataSource source, ProtectedContent content, TimeProvider time, MasterKeyReading reading) =>
-        new(new(source, content, time), new(source, new ProtectedContentReader(source, content, new CustodyChain(source)), time), reading);
+        new(new(source, content, time), new(source, ReadingOf(source, content), time), new(source, ReadingOf(source, content), time), reading);
+    internal static ProtectedContentReader ReadingOf(NpgsqlDataSource source, ProtectedContent content) => new(source, content, new CustodyChain(source));
     internal static CopyClosing ClosingOf(NpgsqlDataSource source, Persistence.Ingestion.IngestionBatches batches) => new(new Persistence.Ingestion.BatchApprovals(source), batches);
     internal static SanitizationSteps StepsOf() =>
         new([new EncodingRepairStep(new TextBoundaries()), new FormatArtifactStep(new TextBoundaries()), new IdentifierStep(new TextBoundaries()), new DestinationsStep()]);
@@ -152,8 +153,7 @@ internal static class CompositionRoot
         _ = services.AddSingleton<IStartupCheck>(provider => new PrivilegeCheck(provider.GetRequiredService<NpgsqlDataSource>()));
         _ = services.AddSingleton(provider => new GuaranteeVerifier(
             provider.GetRequiredService<NpgsqlDataSource>(), provider.GetRequiredService<IMasterKeySource>().ReadAsync,
-            reading => new ProtectedContentReader(
-                provider.GetRequiredService<NpgsqlDataSource>(), ContentOf(reading, new HashSet<string>()), new CustodyChain(provider.GetRequiredService<NpgsqlDataSource>()))))
+            reading => ReadingOf(provider.GetRequiredService<NpgsqlDataSource>(), ContentOf(reading, new HashSet<string>()))))
             .AddSingleton<IStartupCheck, OwnerWindowCheck>();
         _ = services.AddSingleton<IStartupCheck>(provider => new RlsForceCheck(provider.GetRequiredService<NpgsqlDataSource>())).AddSingleton<IStartupCheck, RestoreWindowCheck>();
         _ = services.AddSingleton<IStartupCheck>(provider => new SerializableCheck(provider.GetRequiredService<NpgsqlDataSource>()));

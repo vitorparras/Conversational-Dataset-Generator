@@ -14,13 +14,17 @@
 }
 else
 {
-    <p class="status"><ReversalMark Request="Request" /> <code>@Request.Marker</code> no item @Request.ItemId</p>
+    <p class="status"><ReversalMark Request="Request" Timed="true" /> <code>@Request.Marker</code> no item @Request.ItemId</p>
 }
 @if (Request.State == ReversalState.Expired)
 {
     <Notice>a autorização venceu em @ReversalMark.DayOf(Request.ValidUntil).</Notice>
 }
 <div class="actions">
+    @if (Request.State == ReversalState.Authorized)
+    {
+        <Button Href="@ScreenPaths.ReversalRevealOf(Request.Id)">Revelar a identidade</Button>
+    }
     @if (Request.State is ReversalState.Declined or ReversalState.Expired)
     {
         <Button Href="@ScreenPaths.ReversalAsk">Fazer outro pedido</Button>

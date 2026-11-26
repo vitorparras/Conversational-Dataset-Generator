@@ -50,6 +50,10 @@ public sealed class ReversalEventShapeTests
         ["autorizacao-sem-funcao"] =
             (CustodyEvent.ReversalAuthorizationRefused(1, 41, CustodyReason.ReversalFunction), "reversal_request|41|reversal_authorization_refused|reversal_function||1"),
         ["declinio"] = (CustodyEvent.ReversalDeclined(3, 41), "reversal_request|41|reversal_declined|administrative_act||3"),
+        ["revelacao"] = (CustodyEvent.ReversalRevealed(3, 12, 9), "reversal_revelation|12|reversal_revealed|administrative_act|9|3"),
+        ["negativa-vencida"] = (CustodyEvent.ReversalDenied(3, 9, CustodyReason.ReversalExpired), "reversal_authorization|9|reversal_denied|reversal_expired||3"),
+        ["negativa-usada"] = (CustodyEvent.ReversalDenied(3, 9, CustodyReason.ReversalUsed), "reversal_authorization|9|reversal_denied|reversal_used||3"),
+        ["negativa-esvaziada"] = (CustodyEvent.ReversalDenied(3, 9, CustodyReason.ReversalEmptied), "reversal_authorization|9|reversal_denied|reversal_emptied||3"),
     };
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
@@ -95,6 +99,7 @@ public sealed class ReversalEventShapeTests
     [InlineData("reversal_request", "reversal_request_read", "")]
     [InlineData("reversal_authorization", "reversal_authorized", "41")]
     [InlineData("reversal_request", "reversal_declined", "")]
+    [InlineData("reversal_revelation", "reversal_revealed", "9")]
     public async Task ActOfTheReversalIsRecordedOnlyAsAnAdministrativeAct(string kind, string step, string reference)
     {
         await using var world = await ContentWorld.CreateAsync();
@@ -115,7 +120,7 @@ public sealed class ReversalEventShapeTests
     [InlineData("TRUNCATE content.reversal_request CASCADE")]
     [InlineData("UPDATE content.reversal_authorization SET valid_until = valid_until + interval '1 day'")]
     [InlineData("DELETE FROM content.reversal_authorization")]
-    [InlineData("TRUNCATE content.reversal_authorization")]
+    [InlineData("TRUNCATE content.reversal_authorization CASCADE")]
     public async Task RequestRowsCannotBeChanged(string statement)
     {
         await using var world = await ContentWorld.CreateAsync();

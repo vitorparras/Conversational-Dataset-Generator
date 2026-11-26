@@ -29,4 +29,10 @@ public sealed record ListedReversal
 
     /// <summary>Until when the last authorization holds, or held.</summary>
     public DateTimeOffset? ValidUntil { get; init; }
+
+    /// <summary>The last authorization, if any.</summary>
+    public long? AuthorizationId { get; init; }
+
+    /// <summary>When the marker was revealed, if it was; never what it was.</summary>
+    public DateTimeOffset? RevealedAt { get; init; }
 }

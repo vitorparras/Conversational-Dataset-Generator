@@ -20,7 +20,7 @@ public sealed class EntryScreenTests(BrowserFixture browser, EntryHostFixture en
     private const string FocusedId = "() => document.activeElement.id || document.activeElement.className";
 
     /// <summary>What the page keeps, across the navigation, of each submit of the form: whether it was stopped, the busy mark and the waiting notice, once every listener had run.</summary>
-    private const string SubmitRecorder =
+    internal const string SubmitRecorder =
         "document.addEventListener('submit', e => { setTimeout(() => { const f = e.target; const s = document.getElementById(f.getAttribute('data-wait'));" +
         " const l = JSON.parse(sessionStorage.getItem('submits') || '[]'); l.push([String(e.defaultPrevented), String(f.getAttribute('aria-busy')), s ? s.textContent : '']);" +
         " sessionStorage.setItem('submits', JSON.stringify(l)); }, 0); });";

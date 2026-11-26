@@ -1,6 +1,6 @@
 <div class="notice notice--@Kind.ToString().ToLowerInvariant()" role="@(Kind == Tone.Error ? "alert" : "status")">
     <span class="notice__mark" aria-hidden="true">@Mark</span>
-    <p><span class="notice__kind">@Word:</span> @ChildContent</p>
+    <p><span class="notice__kind">@(Lead ?? Word):</span> @ChildContent</p>
 </div>
 
 @code {
@@ -18,6 +18,10 @@
 
     [Parameter]
     public Tone Kind { get; set; } = Tone.Info;
+
+    /// <summary>The word of the notice when the screen names what failed, as a revelation denied does; the word of the kind otherwise.</summary>
+    [Parameter]
+    public string? Lead { get; set; }
 
     [Parameter, EditorRequired]
     public RenderFragment? ChildContent { get; set; }

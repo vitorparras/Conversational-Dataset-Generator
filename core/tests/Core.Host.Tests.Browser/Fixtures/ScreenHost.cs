@@ -137,7 +137,7 @@ internal sealed class ScreenHost : IAsyncDisposable
     }
 
     /// <summary>The way a screen is reached: the channel told to be encrypted, the session gate, the screen gate, the entry, the screens of the case and the assets.</summary>
-    private static void StandardPipeline(WebApplication started, ScreenParts parts)
+    internal static void StandardPipeline(WebApplication started, ScreenParts parts)
     {
         _ = started.Use((context, next) =>
         {

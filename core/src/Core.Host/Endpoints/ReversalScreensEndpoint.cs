@@ -7,7 +7,8 @@ namespace Core.Host.Endpoints;
 /// <summary>
 /// The screens of the request to reverse a marker and of its authorization (issues 614 and 615), reached only by the curation of the collection with a domain granted: the request, whose POST
 /// either leads with a 303 to the request sent or comes back with what to fix, the requests of the person and each of them, and the requests of the others that wait for a decision, decided on
-/// a page of their own. The requests decide what is refused and record it; the screens only say it, and no screen shows an identity.
+/// a page of their own, and the revelation of a request authorized, on a page of its own. The requests decide what is refused and record it; the screens only say it, and only the revelation
+/// shows an identity, once.
 /// </summary>
 internal static class ReversalScreensEndpoint
 {
@@ -29,6 +30,8 @@ internal static class ReversalScreensEndpoint
         _ = endpoints.MapGet(ScreenPaths.ReversalMine, (HttpContext context, [FromServices] ReversalDesk? desk) => ReversalListEndpoint.ListAsync(context, desk, mine: true))
             .WithMetadata(ScreenAccess.Of(ReversalListScreen.MineTitle, MinePlace, PersonFunctions.Curation));
         _ = endpoints.MapGet(ScreenPaths.ReversalMineOne, ReversalListEndpoint.FollowAsync).WithMetadata(ScreenAccess.WithoutEntry(PersonFunctions.Curation));
+        _ = endpoints.MapGet(ScreenPaths.ReversalReveal, ReversalRevealEndpoint.ConfirmAsync).WithMetadata(ScreenAccess.WithoutEntry(PersonFunctions.Curation));
+        _ = endpoints.MapPost(ScreenPaths.ReversalReveal, ReversalRevealEndpoint.RevealAsync).WithMetadata(ScreenAccess.WithoutEntry(PersonFunctions.Curation));
     }
 
     /// <summary>

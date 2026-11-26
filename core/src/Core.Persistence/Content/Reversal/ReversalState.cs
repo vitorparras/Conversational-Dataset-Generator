@@ -14,4 +14,7 @@ public enum ReversalState
 
     /// <summary>Its last authorization expired; it may be authorized again.</summary>
     Expired,
+
+    /// <summary>Its authorization served to reveal the marker; nothing more is done with it.</summary>
+    Revealed,
 }

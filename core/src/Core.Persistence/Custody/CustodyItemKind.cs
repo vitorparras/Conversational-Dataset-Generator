@@ -41,4 +41,7 @@ public enum CustodyItemKind
 
     /// <summary>An authorization of a request to reverse a marker, by its identifier.</summary>
     ReversalAuthorization,
+
+    /// <summary>A revelation of a marker, the single use of an authorization, by its identifier.</summary>
+    ReversalRevelation,
 }

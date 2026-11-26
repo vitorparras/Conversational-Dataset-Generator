@@ -18,6 +18,7 @@ public static class ContentColumns
     private const string RerunTable = "sanitization_rerun";
     private const string RerunItemTable = "sanitization_rerun_item";
     private const string AuthorizationTable = "reversal_authorization";
+    private const string RevelationTable = "reversal_revelation";
 
     /// <summary>The table of the texts of an item.</summary>
     public static string ItemText { get; } = "item_text";
@@ -222,5 +223,9 @@ public static class ContentColumns
         new(AuthorizationTable, "authorized_by", ClearKind.Identifier),
         new(AuthorizationTable, "authorized_at", ClearKind.Moment),
         new(AuthorizationTable, "valid_until", ClearKind.Moment),
+        new(RevelationTable, IdColumn, ClearKind.Identifier),
+        new(RevelationTable, DomainColumn, ClearKind.Domain),
+        new(RevelationTable, "authorization_id", ClearKind.Identifier),
+        new(RevelationTable, "revealed_at", ClearKind.Moment),
     ];
 }

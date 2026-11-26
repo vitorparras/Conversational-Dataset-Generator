@@ -64,11 +64,12 @@
 
     internal const string PageKey = "pagina";
 
-    /// <summary>The situations a person filters the requests of their own by, as the address names them; a reveal is of another slice and is not among them.</summary>
+    /// <summary>The situations a person filters the requests of their own by, as the address names them; a revelation is the last of them.</summary>
     private static readonly (string Key, string Caption, ReversalState State)[] Situations =
     [
         ("pendente", "Aguarda autorização", ReversalState.Pending), ("autorizado", "Autorizado", ReversalState.Authorized),
         ("recusado", "Recusado", ReversalState.Declined), ("vencido", "Vencido", ReversalState.Expired),
+        ("revelado", "Revelado", ReversalState.Revealed),
     ];
 
     private static readonly Field.Option[] States = [new("", "Todas"), .. Situations.Select(situation => new Field.Option(situation.Key, situation.Caption))];

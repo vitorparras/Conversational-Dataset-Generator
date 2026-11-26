@@ -12,6 +12,7 @@ using Core.Platform.Keys;
 using Core.Platform.Sessions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace Core.Host.Tests;
@@ -33,6 +34,9 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
     internal const string CountAuthorizations = "SELECT count(*)::text FROM content.reversal_authorization";
 
     internal const string CountEvents = "SELECT count(*)::text FROM public.custody_event";
+
+    /// <summary>The original every item of the world stands its marker for, sealed in its map and shown only by a revelation.</summary>
+    internal const string Original = "zqx-original-sintetico-48291307";
 
     private static readonly string[] Labels = ["texto-bruto/1/v1", "texto-bruto/2/v1", "mapa-reversao/1/v1", "mapa-reversao/2/v1"];
 
@@ -66,6 +70,9 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
 
     internal ReversalDesk Desk => Host.Services.GetRequiredService<ReversalDesk>();
 
+    /// <summary>The lines the host logged, of every level.</summary>
+    internal RecordedLog Log => Host.Services.GetRequiredService<RecordedLog>();
+
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
     [SuppressMessage("Reliability", "CA2000", Justification = "The world takes the submissions and the host it is given and lets go of them with itself.")]
@@ -90,7 +97,7 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
         var host = await SessionedHost.StartAsync(
             services => services
                 .AddSingleton(new ServiceCollection().AddSingleton(source).AddSingleton<IMasterKeySource>(key).BuildServiceProvider())
-                .AddSingleton<TimeProvider>(clock)
+                .AddSingleton<TimeProvider>(clock).AddSingleton<RecordedLog>().AddSingleton<ILoggerProvider>(provider => provider.GetRequiredService<RecordedLog>())
                 .AddSingleton(provider => new OperatorAdministration(
                     new PersonRegistry(source), new PersonCredentials(source, new PasswordDerivation(1)), provider.GetRequiredService<SessionStore>(), new PersonNotices(source)))
                 .AddSingleton<DomainGrants>(new GrantedTo((SubmissionWorld.Domain, [people.Curator, people.Second, Annotator]), (SubmissionWorld.OtherDomain, [people.Other]))),
@@ -108,7 +115,7 @@ internal sealed class ReversalScreensWorld : IAsyncDisposable
     {
         const int domain = SubmissionWorld.Domain;
         var marker = ItemTexts.Marker();
-        var item = ItemTexts.Of("zqx-bruto", "zqx-limpo", $"zqx {marker} zqx") with { Map = [new NewMapEntry(marker, "zqx-original-sintetico", false, OccurrenceDestination.Pseudonymize)] };
+        var item = ItemTexts.Of("zqx-bruto", "zqx-limpo", $"zqx {marker} zqx") with { Map = [new NewMapEntry(marker, Original, false, OccurrenceDestination.Pseudonymize)] };
         var written = await new ContentWriter(Submissions.DataSource, Submissions.Content).AddPseudonymizedItemAsync(domain, domain, item, Token);
         return (Assert.NotNull(written.ItemId), marker);
     }

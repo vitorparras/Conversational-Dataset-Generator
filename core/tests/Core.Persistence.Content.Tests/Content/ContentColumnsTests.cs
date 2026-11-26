@@ -192,6 +192,10 @@ public sealed class ContentColumnsTests
                 new ClearColumn("reversal_authorization", "authorized_by", ClearKind.Identifier),
                 new ClearColumn("reversal_authorization", "authorized_at", ClearKind.Moment),
                 new ClearColumn("reversal_authorization", "valid_until", ClearKind.Moment),
+                new ClearColumn("reversal_revelation", "id", ClearKind.Identifier),
+                new ClearColumn("reversal_revelation", "domain_id", ClearKind.Domain),
+                new ClearColumn("reversal_revelation", "authorization_id", ClearKind.Identifier),
+                new ClearColumn("reversal_revelation", "revealed_at", ClearKind.Moment),
             ],
             ContentColumns.Clear);
 

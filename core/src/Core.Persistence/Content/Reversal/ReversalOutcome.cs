@@ -30,6 +30,15 @@ public enum ReversalOutcome
     /// <summary>The request was declined, or holds an authorization in force; nothing was written.</summary>
     Closed,
 
+    /// <summary>The last authorization of the request lapsed; nothing is revealed, and the denial is an event of its own.</summary>
+    Expired,
+
+    /// <summary>The authorization of the request served already; nothing is revealed again, and the denial is an event of its own.</summary>
+    AlreadyRevealed,
+
+    /// <summary>The item was emptied and its map is no more; nothing is revealed, and the denial is an event of its own.</summary>
+    Emptied,
+
     /// <summary>The chain did not record the act, and so nothing was written: the refusal says why, a chain broken among them.</summary>
     NotRecorded,
 }

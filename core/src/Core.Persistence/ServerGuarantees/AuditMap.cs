@@ -74,5 +74,7 @@ public static class AuditMap
         [CustodyStep.ReversalAuthorized] = "a autorização grava uma linha em tabela que o mapa não compara: a cadeia guarda o evento da autorização",
         [CustodyStep.ReversalAuthorizationRefused] = "a recusa da autorização não cria linha nenhuma: grava só o evento na cadeia",
         [CustodyStep.ReversalDeclined] = "o declínio do pedido não cria nem altera linha: grava só o evento na cadeia",
+        [CustodyStep.ReversalRevealed] = "a revelação grava uma linha em tabela que o mapa não compara; a leitura do mapa que vem depois tem o evento dela",
+        [CustodyStep.ReversalDenied] = "a negativa da revelação não cria nem altera linha: grava só o evento na cadeia",
     };
 }

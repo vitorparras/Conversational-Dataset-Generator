@@ -62,8 +62,9 @@ public sealed partial class SubmissionPseudonymizingTests
         // The batch submitted before holds its rows, so the reading sees the items it looks at; the item whose analysis failed is never written, so no row of its batch holds a
         // pseudonymized text, nor the sanitized one in its place, and none of its markers is held.
         Assert.Equal(
-            (BatchState.Rejected, SubmissionStoring.AnalysisUnavailable, [$"{kept}:2,2"], "0"),
-            (detail!.State, detail.Reason, await world.StoredAsync(ByBatch), Assert.Single(await world.StoredAsync(HeldOf(outcome.Batch.Value)))));
+            (BatchState.Rejected, SubmissionStoring.AnalysisUnavailable, "0"),
+            (detail!.State, detail.Reason, Assert.Single(await world.StoredAsync(HeldOf(outcome.Batch.Value)))));
+        Assert.Equal([$"{kept}:2,2"], await world.StoredAsync(ByBatch));
     }
 
     [DatabaseTheory]

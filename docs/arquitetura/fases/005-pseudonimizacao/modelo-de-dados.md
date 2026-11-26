@@ -32,12 +32,12 @@ e tela leem pelo escopo do sistema (batch_holds_pseudonymized, batch_marker_coun
 Os passos novos: batch_pseudonymized, um por lote aceito com item pseudonimizado, gravado no aceite
 e na mesma transação, nunca antes do primeiro item; e o motivo pseudonym_of_removed, que rejeita o
 lote ao chegar entrada de outro destino. Ler um mapa usa reversal_entries_read, um por mapa. O
-esvaziamento já zera o mapa (0010, linha 21) e apaga os marcadores. Na reexecução, a B só guarda os
-marcadores; o pseudonimizado e o mapa novos ficam com a F3.
+esvaziamento zera o mapa (0010, linha 21) e apaga os marcadores; a reexecução da B só os guarda.
 
-**F3, `pseudonymization-wiring`.** O gatilho de item_resanitized da fase 4 passa a exigir o
-pseudonimizado e o mapa novos; o mapa anterior é esvaziado (GRANT de UPDATE só nas colunas do
-esvaziamento, sob esse gatilho). O motivo novo pseudonym_without_pair recusa o item sem par.
+**F3, `pseudonymization-wiring`.** marker_in_use ganha o lote, e item_marker perde o único por
+marcador: o marcador novo ao item vem do sorteio da transação ou do lote do item, nunca de outro
+(0057). O item_resanitized passa a exigir o pseudonimizado e o mapa novos, e o anterior é esvaziado
+(UPDATE só nas colunas do esvaziamento). O motivo pseudonym_without_pair recusa o item sem par.
 
 ## Fatia C
 

@@ -110,6 +110,7 @@
         RerunRefusal.KeyLost => "A chave do texto bruto foi perdida.",
         RerunRefusal.Failed => "Falhou em todas as tentativas.",
         RerunRefusal.Undecided => "Os destinos das ocorrências nunca foram decididos.",
+        RerunRefusal.PseudonymWithoutPair => "Uma ocorrência guardada não tem par na resposta do serviço.",
         _ => throw new ArgumentOutOfRangeException(nameof(refusal), refusal, "A refusal the screen does not tell."),
     };
 

@@ -40,7 +40,7 @@ internal static class DecidedItemTexts
         return new NewItemText(raw, item.Swap.Text, plain.Occurrences!)
         {
             Sanitization = plain.Sanitization,
-            Map = [.. item.Swap.Entries.Select(entry => new NewMapEntry(entry.Marker.Text, entry.Original, entry.IsAuthor, OccurrenceDestination.Pseudonymize))],
+            Map = [.. item.Swap.Entries.Select(Entry)],
         };
     }
 
@@ -50,15 +50,13 @@ internal static class DecidedItemTexts
     /// </summary>
     internal static Resanitized? Rerun(SanitizationRerun steps, PseudonymSwap swap, RerunSource held)
     {
-        var decided = held.Occurrences?.Select(occurrence => new DecidedOccurrence(new Occurrence(occurrence.Start, occurrence.End, occurrence.Kind, "", ""), Decided(occurrence.Destination)));
-        var produced = steps.Rerun(held.Raw, decided is null ? null : [.. decided], held.StoredText);
+        var produced = steps.Rerun(held.Raw, Held(held), held.StoredText);
         if (produced.Result.Sanitized is not { } sanitized)
         {
             return null;
         }
 
-        var stored = Stored(sanitized);
-        var resanitized = new Resanitized(stored.Text, stored.Version, stored.Steps, stored.Trail, stored.Counts, stored.Untreated, produced.Identical);
+        var resanitized = Produced(sanitized, produced.Identical);
         if (held.Map is null || produced.Identical)
         {
             return resanitized;
@@ -66,6 +64,41 @@ internal static class DecidedItemTexts
 
         var (text, map) = RerunSwapping.Again(swap, held, sanitized);
         return resanitized with { Pseudonymized = text, Map = map };
+    }
+
+    /// <summary>
+    /// What the rerun makes of an item stored before the coreference, with its first pseudonymized text and map: the occurrences it holds, each with the group of its pair, keep their
+    /// destinations, but for the place a slice before A preserved, which becomes a marker (decision 0056). No mention refers to an author, whom the item does not keep, and the draw is
+    /// the item's own, without the markers another item holds.
+    /// </summary>
+    internal static Resanitized? First(SanitizationRerun steps, PseudonymSwap swap, RerunSource held, IReadOnlyList<DecidedOccurrence> paired)
+    {
+        var produced = steps.Rerun(held.Raw, [.. paired.Select(Placed)], held.StoredText);
+        if (produced.Result.Sanitized is not { } sanitized)
+        {
+            return null;
+        }
+
+        var request = new SwapRequest { Sanitized = sanitized.Text, Occurrences = [.. sanitized.Pseudonyms.Select(mention => MentionReferents.Refer(mention, []))], ItemId = held.ItemId };
+        var swapped = swap.Swap(request, marker => held.Taken.Contains(marker.Text));
+        return Produced(sanitized, produced.Identical) with { Pseudonymized = swapped.Text, Map = [.. swapped.Entries.Select(Entry)] };
+    }
+
+    /// <summary>The occurrences the item holds, as the steps read them, with no part of speech nor role.</summary>
+    internal static List<DecidedOccurrence>? Held(RerunSource held) =>
+        held.Occurrences?.Select(occurrence => new DecidedOccurrence(new Occurrence(occurrence.Start, occurrence.End, occurrence.Kind, "", ""), Decided(occurrence.Destination))).ToList();
+
+    private static DecidedOccurrence Placed(DecidedOccurrence held) =>
+        held.Destination == Destination.Preserve && string.Equals(held.Occurrence.Kind, OccurrenceKinds.Location, StringComparison.Ordinal)
+            ? held with { Destination = Destination.Pseudonymize }
+            : held;
+
+    private static NewMapEntry Entry(MapEntry entry) => new(entry.Marker.Text, entry.Original, entry.IsAuthor, OccurrenceDestination.Pseudonymize);
+
+    private static Resanitized Produced(SanitizedText sanitized, bool identical)
+    {
+        var stored = Stored(sanitized);
+        return new Resanitized(stored.Text, stored.Version, stored.Steps, stored.Trail, stored.Counts, stored.Untreated, identical);
     }
 
     private static ItemSanitization Stored(SanitizedText clean) => new()

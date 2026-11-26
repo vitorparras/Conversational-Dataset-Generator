@@ -26,10 +26,10 @@ internal static class SubmissionSwapping
             .ConfigureAwait(false);
         var units = kept.Material.Units.Zip(Accommodating.Of(kept.Material, kept.Form), cleaned.Positions).Zip(cleaned.Texts, swapped);
         var written = new List<(long Item, ReadUnit Unit)>();
-        foreach (var ((unit, declared, position), clean, pseudonymized) in units)
+        foreach (var ((unit, declared, position), clean, drawn) in units)
         {
             var accommodation = declared is null ? null : new ItemAccommodation(declared.FormCode, declared.Codes);
-            var text = DecidedItemTexts.Swapped(cleaned.Decided, position, unit.Text, (clean, pseudonymized)) with { Accommodation = accommodation };
+            var text = DecidedItemTexts.Swapped(cleaned.Decided, position, unit.Text, (clean, drawn)) with { Accommodation = accommodation };
             var item = await writer.AddPseudonymizedItemAsync(kept.DomainId, kept.BatchId, text, cancellationToken).ConfigureAwait(false);
             written.Add((item.ItemId ?? throw new InvalidOperationException("A marker the batch held was taken from it."), unit));
         }

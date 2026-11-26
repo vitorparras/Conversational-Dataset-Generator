@@ -12,9 +12,9 @@ do seu peso ([0059](../decisoes/0059-mutacao-do-diff-e-noturna.md)).
 
 O passo corta cada arquivo C# entre os membros dos seus tipos e passa os trechos ao Stryker como
 `arquivo.cs{a..b}`. O Stryker 5.0.0 só conta o mutante cujo nó cabe inteiro na faixa, e o corte
-nunca cai num membro: cada nó está em uma só faixa e a soma das partes é a da área. Os trechos se
-repartem dos mais pesados aos mais leves, sempre para a parte de menos peso, de modo que a divisão
-só depende dos arquivos (#585: repartir por contagem deu a uma parte 40 mutantes).
+nunca cai num membro: cada nó está em uma só faixa e a soma das partes é a da área. Os trechos vão
+dos mais pesados aos mais leves, cada um à parte de menos peso, e a divisão só depende dos arquivos
+(#585: por contagem, uma parte teve 40 mutantes). Exceção: [054](054-mutacao-sem-cobertura.md).
 
 O peso mede o custo de testar o trecho, não só o tamanho. É o número de tokens, sem comentário,
 **mais o peso de um mutante de suíte (`SUITE_MUTANT`, 200) por literal de um inicializador

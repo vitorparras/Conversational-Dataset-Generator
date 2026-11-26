@@ -6,7 +6,7 @@ namespace Core.Host.Submissions;
 /// The draws of the markers of a submission (issue 102, F3): the conversation is swapped in one draw, and each item of another form is a conversation of its own, with no marker of an
 /// item before it. The markers are held for the batch before the first item is written, drawn again without the ones another batch holds.
 /// </summary>
-internal static class ConversationDraws
+internal static class SubmissionDraws
 {
     /// <summary>The draws a conversation has before its writing fails, each one without the markers the ones before it met in another batch.</summary>
     internal const int Draws = 8;
@@ -19,7 +19,7 @@ internal static class ConversationDraws
     /// <param name="items">The request of each item, and whether they are the messages of one conversation.</param>
     /// <param name="reserve">Holds the markers for the batch, all or none, and names the ones another batch holds.</param>
     internal static async Task<IReadOnlyList<Pseudonymized>> SwappedAsync(
-        PseudonymSwap swap, (IReadOnlyList<SwapRequest> Requests, bool Conversation) items, Reservation reserve)
+        PseudonymSwap swap, (IReadOnlyList<SwapRequest> Requests, bool Threaded) items, Reservation reserve)
     {
         var lost = new HashSet<string>(StringComparer.Ordinal);
         for (var draw = 0; draw < Draws; draw++)
@@ -37,9 +37,9 @@ internal static class ConversationDraws
         throw new InvalidOperationException("Every draw of the conversation met a marker another batch holds.");
     }
 
-    private static IReadOnlyList<Pseudonymized> Swapped(PseudonymSwap swap, (IReadOnlyList<SwapRequest> Requests, bool Conversation) items, Func<string, bool> lost)
+    private static IReadOnlyList<Pseudonymized> Swapped(PseudonymSwap swap, (IReadOnlyList<SwapRequest> Requests, bool Threaded) items, Func<string, bool> lost)
     {
-        if (items.Conversation)
+        if (items.Threaded)
         {
             return swap.SwapConversation(items.Requests, marker => lost(marker.Text));
         }

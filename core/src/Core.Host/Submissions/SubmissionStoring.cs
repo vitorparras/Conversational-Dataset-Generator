@@ -87,7 +87,7 @@ internal static class SubmissionStoring
                 return Keeping.StepFailed;
             }
 
-            var written = await SubmissionPseudonymizing.WriteAsync(intake, kept, new(decided, positions, sanitized), cancellationToken).ConfigureAwait(false);
+            var written = await SubmissionSwapping.WriteAsync(intake, kept, new(decided, positions, sanitized), cancellationToken).ConfigureAwait(false);
             if (kept.Form == MaterialForm.Conversation && intake.Marking is { } marking)
             {
                 await marking.MarkAsync(kept.DomainId, kept.BatchId, written, cancellationToken).ConfigureAwait(false);

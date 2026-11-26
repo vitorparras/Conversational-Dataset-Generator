@@ -65,7 +65,8 @@ internal static class SubmissionStoring
 
     /// <summary>
     /// Analyses and sanitizes every text of the material before the first item, then writes each unit as an item of the batch with the occurrences decided in it and its sanitized text,
-    /// and says how it ended: kept, a text with no analysis, a step that failed, a write that failed or a submission cancelled while it analysed or wrote (issue 775);
+    /// and says how it ended: kept, a text with no analysis, a step that failed, a write that failed, a write the database never serialized, told to try again as a collision,
+    /// or a submission cancelled while it analysed or wrote (issue 775);
     /// when it was not kept, the items before the one that failed still stand for the rejection to remove.
     /// </summary>
     /// <param name="intake">Holds the writer of the items and the marking of the replicated content.</param>
@@ -98,6 +99,11 @@ internal static class SubmissionStoring
         catch (OperationCanceledException)
         {
             return Keeping.Cancelled;
+        }
+        catch (PostgresException refused) when (refused.SqlState == PostgresErrorCodes.SerializationFailure)
+        {
+            // Every attempt was serialized behind a submission made together: like a collision of the chain, it is for the caller to try again.
+            return Keeping.Collided;
         }
         catch (Exception failure) when (failure is InvalidOperationException or NpgsqlException)
         {

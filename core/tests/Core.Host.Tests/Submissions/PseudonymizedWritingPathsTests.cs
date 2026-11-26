@@ -24,7 +24,6 @@ public sealed class PseudonymizedWritingPathsTests
         + "VALUES (@person, false, 'item_text', @item, 'item_emptied', 'contract_requirement', 'zqx-1')";
 
     private const string ContentKept = "CE004";
-    private const string WithoutMap = "CE005";
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
@@ -44,10 +43,11 @@ public sealed class PseudonymizedWritingPathsTests
         var rerun = await Assert.ThrowsAsync<PostgresException>(() => InOneTransactionAsync(world, item, Resanitized, SanitizedAsPseudonymized));
         var emptying = await Assert.ThrowsAsync<PostgresException>(() => InOneTransactionAsync(world, item, Emptied, SanitizedAsPseudonymized));
 
-        // The item updated, the first one, holds its sanitized and its pseudonymized texts each sealed on its own, so the update changes the column: the rerun meets, at its commit, the map it did
-        // not write, and the emptying the guard that lets the texts of a row change only with a rerun; after both, every item holds the pseudonymized text the swap gave it.
+        // The item updated, the first one, holds its sanitized and its pseudonymized texts each sealed on its own, so the update changes the column: the rerun with no conclusion in the queue
+        // and the emptying both meet the guard that lets the texts of a row change only with a rerun; after both, every item holds the pseudonymized text the swap gave it.
         Assert.Equal(("2,2,2", "true"), (submitted, Assert.Single(await world.StoredAsync(Sanitized))));
-        Assert.Equal((WithoutMap, ContentKept), (rerun.SqlState, emptying.SqlState));
+        Assert.Equal((ContentKept, ContentKept), (rerun.SqlState, emptying.SqlState));
+        Assert.All([rerun, emptying], refused => Assert.Contains("only with the event of its rerun and its conclusion in the queue", refused.MessageText, StringComparison.Ordinal));
         Assert.Equal(swapped, Assert.Single(await world.StoredAsync(Sealed)));
     }
 

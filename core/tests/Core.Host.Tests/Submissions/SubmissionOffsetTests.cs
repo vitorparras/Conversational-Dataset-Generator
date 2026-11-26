@@ -12,10 +12,13 @@ namespace Core.Host.Tests.Submissions;
 public sealed class SubmissionOffsetTests : IDisposable
 {
     private const string OutsideTheText =
-        /*lang=json,strict*/ """{"occurrences":[{"start":0,"end":99999,"kind":"PERSON","part_of_speech":"PROPN","syntactic_role":"nsubj"}],"model_version":null}""";
+        """{"occurrences":[{"text_index":0,"start":0,"end":99999,"kind":"PERSON","part_of_speech":"PROPN","syntactic_role":"nsubj","group":0}]""" + Authors;
 
     private const string InsideTheText =
-        /*lang=json,strict*/ """{"occurrences":[{"start":0,"end":1,"kind":"PERSON","part_of_speech":"PROPN","syntactic_role":"nsubj"}],"model_version":null}""";
+        """{"occurrences":[{"text_index":0,"start":0,"end":1,"kind":"PERSON","part_of_speech":"PROPN","syntactic_role":"nsubj","group":0}]""" + Authors;
+
+    /// <summary>The group of each author of the conversation of the world, so that the answer for the whole item differs from a good one by its offset only (issue 102).</summary>
+    private const string Authors = ""","author_groups":[{"author":"ZQXUM","group":1},{"author":"ZQXDOIS","group":2}],"model_version":null}""";
 
     private readonly HttpClient client = LoopbackHttpClient.Create();
 

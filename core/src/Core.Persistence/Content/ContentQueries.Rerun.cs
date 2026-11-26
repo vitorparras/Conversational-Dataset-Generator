@@ -87,19 +87,20 @@ public static partial class ContentQueries
         + "sanitization_counts = @counts, sanitization_untreated = @untreated, pseudonymized_text = coalesce(@pseudonymized, pseudonymized_text) WHERE id = @id AND emptied_at IS NULL";
 
     /// <summary>As <see cref="CloseItemResanitization"/>, keeping the sanitized text, which the rerun produced again as it was.</summary>
-    internal const string CloseItemRecount = Recount + " WHERE id = @id AND emptied_at IS NULL";
+    internal const string CloseItemRecount =
+        "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL "
+        + "ON CONFLICT (version, domain_id) DO NOTHING) UPDATE content.item_text SET sanitization_version = @version, sanitization_trail = @trail, "
+        + "sanitization_counts = @counts, sanitization_untreated = @untreated WHERE id = @id AND emptied_at IS NULL";
 
     /// <summary>
     /// As <see cref="CloseItemRecount"/>, with the first pseudonymized text of an item stored before the coreference (issue 102, F3); only this one names the column, so that an item
     /// pseudonymized whose text is the same is not asked for a new map.
     /// </summary>
-    internal const string CloseItemFirstRecount = Recount + ", pseudonymized_text = @pseudonymized WHERE id = @id AND emptied_at IS NULL";
-
-    /// <summary>The version once per domain, and the counts and the version of the item, which the statements of the same text complete.</summary>
-    private const string Recount =
-        "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL "
-        + "ON CONFLICT (version, domain_id) DO NOTHING) UPDATE content.item_text SET sanitization_version = @version, sanitization_trail = @trail, "
-        + "sanitization_counts = @counts, sanitization_untreated = @untreated";
+    internal const string CloseItemFirstRecount =
+        "WITH version AS (INSERT INTO content.sanitization_version (domain_id, version, steps) "
+        + "SELECT @domain::integer, @version::text, @steps::text WHERE @version::text IS NOT NULL ON CONFLICT (version, domain_id) DO NOTHING) "
+        + "UPDATE content.item_text SET sanitization_version = @version, sanitization_trail = @trail, sanitization_counts = @counts, sanitization_untreated = @untreated, "
+        + "pseudonymized_text = @pseudonymized WHERE id = @id AND emptied_at IS NULL";
 
     /// <summary>How many items of the accepted batches, not emptied, each version holds, the most recent first and the items with none last.</summary>
     internal const string ReadRerunSituation =

@@ -144,8 +144,14 @@ DECLARE
 BEGIN
     NEW.written_in := pg_catalog.pg_current_xact_id();
     -- A row of a domain other than the declared one, or with none declared, is the row policy's to refuse, with its own refusal, and the batch is not looked for.
-    IF NEW.domain_id = public.declared_domain() AND NOT public.restore_window_is_open()
-        AND NOT (TG_TABLE_NAME = 'reversal_map' AND public.custody_event_of_this_transaction('item_text', NEW.item_id, 'item_resanitized')) THEN
+    IF NEW.domain_id = public.declared_domain() AND NOT public.restore_window_is_open() THEN
+        -- The item of the row is read in its own statement: PL/pgSQL plans an expression whole, and the item text has no item_id to plan it with.
+        IF TG_TABLE_NAME = 'reversal_map' THEN
+            IF public.custody_event_of_this_transaction('item_text', NEW.item_id, 'item_resanitized') THEN
+                RETURN NEW;
+            END IF;
+        END IF;
+
         PERFORM public.take_batch_turn(NEW.batch_id);
         SELECT b.state, b.review_sample INTO batch_state, batch_sample FROM content.ingestion_batch b WHERE b.id = NEW.batch_id AND b.domain_id = NEW.domain_id;
         IF batch_state IS DISTINCT FROM 'open' OR batch_sample IS NOT NULL THEN

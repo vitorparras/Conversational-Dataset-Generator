@@ -84,8 +84,7 @@ public sealed class SubmissionCollisionTests
             odd.Add($"r{round} kinds " + string.Join(',', outcomes.Select(o => o.Kind)));
         }
 
-        Assert.Fail("error: DIAG " + string.Join(" | ", [.. odd, .. SubmissionStoring.Seen]).Replace("
-", " ", StringComparison.Ordinal));
+        Assert.Fail("error: DIAG " + string.Join(" | ", [.. odd, .. SubmissionStoring.Seen]).ReplaceLineEndings(" "));
     }
 
     [DatabaseFact]

@@ -63,7 +63,7 @@ public sealed partial class SubmissionPseudonymizingTests
         // pseudonymized text, nor the sanitized one in its place, and none of its markers is held.
         Assert.Equal(
             (BatchState.Rejected, SubmissionStoring.AnalysisUnavailable, [$"{kept}:2,2"], "0"),
-            (detail!.State, detail.Reason, await world.StoredAsync(ByBatch), Assert.Single(await world.StoredAsync(HeldOf(outcome.Batch!.Value)))));
+            (detail!.State, detail.Reason, await world.StoredAsync(ByBatch), Assert.Single(await world.StoredAsync(HeldOf(outcome.Batch.Value)))));
     }
 
     [DatabaseTheory]
@@ -81,7 +81,7 @@ public sealed partial class SubmissionPseudonymizingTests
         // the three of the conversation (its two authors and the mention) when the cancellation came after the items.
         Assert.Equal(
             (true, BatchState.Rejected, SubmissionStoring.SubmissionCancelled, "0,0,0", afterTheItems ? "3" : "0"),
-            (cancelling.IsCancellationRequested, detail!.State, detail.Reason, Assert.Single(await world.StoredAsync(Rows)), Assert.Single(await world.StoredAsync(HeldOf(outcome.Batch!.Value)))));
+            (cancelling.IsCancellationRequested, detail!.State, detail.Reason, Assert.Single(await world.StoredAsync(Rows)), Assert.Single(await world.StoredAsync(HeldOf(outcome.Batch.Value)))));
     }
 
     [DatabaseFact]

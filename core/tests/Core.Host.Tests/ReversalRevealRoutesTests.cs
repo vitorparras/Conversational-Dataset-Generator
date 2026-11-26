@@ -193,14 +193,7 @@ public sealed class ReversalRevealRoutesTests
         var h1 = Regex.Match(probe.Page, "<h1>[^<]{0,80}", RegexOptions.None, TimeSpan.FromSeconds(1)).Value;
         var notice = Regex.Match(probe.Page, "notice__kind[^\n]{0,200}", RegexOptions.None, TimeSpan.FromSeconds(1)).Value;
         var said = string.Create(CultureInfo.InvariantCulture, $"error: diag emptied={emptied.Outcome} refusal={emptied.Refusal?.Outcome}:{emptied.Refusal?.Refusal} status={probe.Status}");
-        var ask = probe.Page.IndexOf($"href=\"{ScreenPaths.ReversalAsk}\"", StringComparison.Ordinal);
-        var near = ask < 0 ? string.Empty : probe.Page.Substring(Math.Max(0, ask - 160), 200).ReplaceLineEndings(" ");
-        var original = probe.Page.Contains(Original, StringComparison.Ordinal);
-        if (ask >= 0 || original)
-        {
-            Assert.Fail(string.Create(CultureInfo.InvariantCulture, $"{said} last={last} count={count} h1={h1} notice={notice} original={original} ask={near}"));
-        }
-
+        Assert.Fail(string.Create(CultureInfo.InvariantCulture, $"{said} last={last} count={count} h1={h1} notice={notice}"));
         Assert.Equal(EmptyingOutcome.Emptied, emptied.Outcome);
 
         var refused = await world.PostAsync(ScreenPaths.ReversalRevealOf(request), Nothing);

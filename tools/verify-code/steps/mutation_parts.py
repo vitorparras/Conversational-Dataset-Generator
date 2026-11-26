@@ -2,15 +2,18 @@
 three jobs of one area, each mutating only its share of the code with the same test project, the
 same ceiling and the same survivor limit. The unit of the split is the slice of a file, cut between
 the members of its types (steps.mutation_members), weighted by its tokens; the heaviest slice goes
-first to the lightest part, so the split depends on nothing but the files and every slice belongs
-to exactly one part (#585: dealt in turn by count, one part got 40 mutants)."""
+first to the part it adds least to, so the split depends on nothing but the files and every slice
+belongs to exactly one part (#585: dealt in turn by count, one part got 40 mutants)."""
 
 from __future__ import annotations
 
+import heapq
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from math import ceil
 
+from steps.mutation_cost import COVERAGE, SUITE_MUTANT, Cost
 from steps.mutation_members import UNBOUNDED
 
 SEPARATOR = "@"
@@ -61,15 +64,75 @@ class Slice:
 
 
 def dealt(slices: list[Slice], part: Part) -> list[Slice]:
-    """The slices of one part: the heaviest first, each to the part with the least weight so far."""
-    loads = [0] * part.of
-    mine: list[Slice] = []
-    for piece in sorted(slices, key=lambda s: (-s.weight, s.file, s.start)):
-        lightest = loads.index(min(loads))
-        loads[lightest] += piece.weight
-        if lightest == part.number - 1:
-            mine.append(piece)
-    return sorted(mine)
+    """The slices of one part, as ``layout`` places them."""
+    ordered = tuple(sorted(slices, key=lambda s: (-s.weight, s.file, s.start)))
+    places = layout(ordered, part.of)
+    return sorted(p for p, n in zip(ordered, places, strict=True) if n == part.number - 1)
+
+
+@lru_cache(maxsize=8)
+def layout(ordered: tuple[Slice, ...], parts: int) -> tuple[int, ...]:
+    """The part of each slice, the heaviest first: the slices that need the coverage of each test
+    in parts of their own, as many as make the heaviest part cost least, when that spares it more
+    than a mutant of the suite (#935); otherwise each slice to the part with the least weight."""
+    weights = [int(piece.weight) for piece in ordered]
+    needs = [covered(piece) for piece in ordered]
+    together = spread(weights, parts)
+    if parts == 1 or all(needs) or not any(needs):
+        return tuple(together)
+    split_up = min(
+        (apart(weights, needs, parts, plain) for plain in range(1, parts)),
+        key=lambda places: cost(weights, places, needs, parts),
+    )
+    saved = cost(weights, together, needs, parts) - cost(weights, split_up, needs, parts)
+    return tuple(split_up if saved > SUITE_MUTANT else together)
+
+
+def spread(weights: list[int], parts: int) -> list[int]:
+    """The part of each weight, the heaviest first: the one with the least weight so far, the
+    first of them on a tie."""
+    heap = [(0, number) for number in range(parts)]
+    places: list[int] = []
+    for weight in weights:
+        load, number = heapq.heappop(heap)
+        places.append(number)
+        heapq.heappush(heap, (load + weight, number))
+    return places
+
+
+def apart(weights: list[int], needs: list[bool], parts: int, plain: int) -> list[int]:
+    """The weights that need the coverage spread in the first ``plain`` parts, the rest after."""
+    first = iter(spread([w for w, need in zip(weights, needs, strict=True) if need], plain))
+    rest = spread([w for w, need in zip(weights, needs, strict=True) if not need], parts - plain)
+    after = iter(rest)
+    return [next(first) if need else plain + next(after) for need in needs]
+
+
+def cost(weights: list[int], places: list[int], needs: list[bool], parts: int) -> int:
+    """What the heaviest part weighs, with ``COVERAGE`` when one of its slices needs it."""
+    loads = [0] * parts
+    covering = [False] * parts
+    for weight, number, need in zip(weights, places, needs, strict=True):
+        loads[number] += weight
+        covering[number] = covering[number] or need
+    return max(load + COVERAGE * has for load, has in zip(loads, covering, strict=True))
+
+
+def covered(piece: Slice) -> bool:
+    """Whether Stryker tests the mutants of the slice against the tests that cover them, so its
+    part captures the coverage of each test: not for a slice of the suite nor an inert one."""
+    cost = piece.weight
+    return not (isinstance(cost, Cost) and (cost.suite or cost.inert))
+
+
+def inert(slices: list[Slice]) -> bool:
+    """Whether a part holds slices and none of them any code Stryker could mutate."""
+    return bool(slices) and all(isinstance(p.weight, Cost) and p.weight.inert for p in slices)
+
+
+def bare(slices: list[Slice]) -> bool:
+    """Whether a part can skip the coverage of each test: none of its slices needs it."""
+    return not any(covered(piece) for piece in slices)
 
 
 def share(slices: list[Slice], part: Part) -> tuple[str, ...]:

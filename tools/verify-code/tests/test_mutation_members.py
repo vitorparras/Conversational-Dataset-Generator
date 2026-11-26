@@ -8,7 +8,7 @@ from itertools import pairwise
 from pathlib import Path
 
 from steps import mutation_members
-from steps.mutation_cost import SUITE_MUTANT
+from steps.mutation_cost import SUITE_MUTANT, Cost
 from steps.mutation_members import UNBOUNDED, member_ends, slices
 
 from . import support
@@ -282,6 +282,60 @@ class SuiteWideTests(unittest.TestCase):
         named = [w for _, _, w in slices(text, SUITE)]
 
         self.assertEqual(named, [w for _, _, w in slices(text)])
+
+
+def cost_of(member: str, suite: frozenset[str] = frozenset()) -> Cost:
+    """The cost of the slice of ``member``, put after a plain field in a class."""
+    found = slices("class A { int first; " + member + " }", suite)[1][2]
+    assert isinstance(found, Cost)
+    return found
+
+
+class KindTests(unittest.TestCase):
+    """A slice says whether Stryker tests its mutants against the whole suite, and whether it holds
+    no code Stryker could mutate (#935)."""
+
+    def test_a_field_an_event_and_a_property_without_a_body_are_inert(self) -> None:
+        members = ("int f;", "event Handler E;", "int P { get; init; }", "C this[int i] { get; }")
+
+        self.assertEqual([cost_of(m).inert for m in members], [True] * len(members))
+
+    def test_the_head_of_a_file_up_to_its_first_field_is_inert(self) -> None:
+        head = slices("using System;\nnamespace N;\nclass A { int first; int b; }")[0][2]
+
+        self.assertTrue(isinstance(head, Cost) and head.inert)
+
+    def test_whatever_may_hold_code_is_not_inert(self) -> None:
+        members = (
+            "void M() { }",
+            "int P => f;",
+            "int f = 0;",
+            "int P { get { return f; } }",
+            "event Handler E { add { } remove { } }",
+            "[Flag(Kind.X)] int f;",
+        )
+
+        self.assertEqual([cost_of(m).inert for m in members], [False] * len(members))
+
+    def test_a_statement_without_a_parenthesis_or_an_equals_is_not_inert(self) -> None:
+        for text in ("return f;", "f++;", "--f;", "await f;", "throw f;"):
+            found = slices(text)[0][2]
+
+            self.assertTrue(isinstance(found, Cost) and not found.inert, text)
+
+    def test_every_element_of_a_static_list_is_of_the_suite_and_none_is_inert(self) -> None:
+        costs = [w for _, _, w in slices(LIST)][1:4]
+
+        self.assertTrue(all(isinstance(c, Cost) and c.suite and not c.inert for c in costs))
+
+    def test_a_static_initializer_and_a_named_method_are_of_the_suite(self) -> None:
+        self.assertTrue(cost_of("static int P { get; } = 1;").suite)
+        self.assertTrue(cost_of("Task OpenAsync(int a, int b) { Run(a); }", SUITE).suite)
+
+    def test_a_static_method_and_a_plain_member_are_not_of_the_suite(self) -> None:
+        members = ("static int M() { return 1; }", "int f = 1;", "Task Other(int a) { Run(a); }")
+
+        self.assertEqual([cost_of(m, SUITE).suite for m in members], [False] * len(members))
 
 
 class ListCutTests(unittest.TestCase):

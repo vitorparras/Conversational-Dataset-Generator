@@ -22,7 +22,7 @@ REACHED = ((LOGGING, SERVICE), ["- `Core.Platform.Logging`: arquivo de Core.Plat
 class ListingTests(fixture.MutationFixture):
     def setUp(self) -> None:
         super().setUp()
-        support.write(self.root, SINK, "class S {}\n")
+        support.write(self.root, SINK, "class S { int f = 0; }\n")
         support.write(self.root, SERVICE_SINK, "def write(x):\n    return x + 1\n")
 
     def select(self, *changed: str, unreadable: bool = False) -> tuple[tuple[str, ...], list[str]]:

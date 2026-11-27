@@ -95,6 +95,7 @@ public sealed class CustodyBrokenChainTests
     [DatabaseTheory]
     [InlineData(CustodyStep.RawTextRead)]
     [InlineData(CustodyStep.SanitizedTextRead)]
+    [InlineData(CustodyStep.PseudonymizedTextRead)]
     [InlineData(CustodyStep.ReversalEntriesRead)]
     public async Task AfterAFailureTheReadingOfContentIsStillRecordedBecauseTheReadingIsADefectToStopAndNotToHide(CustodyStep step)
     {

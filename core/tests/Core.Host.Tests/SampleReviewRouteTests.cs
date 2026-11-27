@@ -249,7 +249,7 @@ public sealed class SampleReviewRouteTests
         Assert.Equal(BatchState.Open, (await world.StateAsync())!.State);
     }
 
-    private static readonly string[] ReadSteps = ["raw_text_read", "sanitized_text_read"];
+    private static readonly string[] ReadSteps = ["pseudonymized_text_read"];
 
     [DatabaseFact]
     public async Task SampleReadIsRecordedWithoutTheContent()

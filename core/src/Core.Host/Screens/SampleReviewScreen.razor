@@ -44,9 +44,13 @@ else
         {
             <li class="sample__item">
                 <Panel Id="@($"item-{item.Position}")" Title="@($"Item {Number(item.Position)} de {Number(Sample.Items.Count)}")">
-                    @if (!Decided)
+                    @if (!Decided && item.Text is null)
                     {
-                        <p class="sample__version">@SampleTexts.VersionOf(item.Cleaned, Version)</p>
+                        <p class="sample__version">@SampleTexts.Absent</p>
+                    }
+                    else if (!Decided)
+                    {
+                        <p class="sample__version">@SampleTexts.VersionOf(Version)</p>
                         <blockquote class="sample__text">@item.Text</blockquote>
                     }
                     @if (item.Reviewed)
@@ -64,7 +68,7 @@ else
                     @if (!Decided)
                     {
                         <div class="actions">
-                            @if (item.Position == Next)
+                            @if (item.Position == Next && item.Text is not null)
                             {
                                 <form method="post" action="@($"{Action}/itens/{Number(item.Position)}/revisado")">
                                     <Button Id="@($"revisado-{item.Position}")">Revisado, sem dado pessoal</Button>
@@ -118,8 +122,8 @@ else
     internal const string RepeatedMark = "repetido";
     internal const string RefusedMark = "recusado";
 
-    /// <summary>One item of the sample, at its place in the draw, in the most treated version that exists, and whether it was reviewed.</summary>
-    public sealed record Item(int Position, string Text, bool Cleaned, bool Reviewed);
+    /// <summary>One item of the sample, at its place in the draw, in its pseudonymized text, which is null when the item has none, and whether it was reviewed.</summary>
+    public sealed record Item(int Position, string? Text, bool Reviewed);
 
     /// <summary>The approval the register keeps: who, when and which sample.</summary>
     public sealed record Approval(string By, DateTimeOffset At, string Draw);

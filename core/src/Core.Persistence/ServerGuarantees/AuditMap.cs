@@ -23,7 +23,7 @@ public static class AuditMap
             "public.person_change",
             [Insert],
             [CustodyStep.PersonCreated, CustodyStep.PersonDeactivated, CustodyStep.PersonFunctionChanged, CustodyStep.PersonPasswordSet, CustodyStep.PasswordChanged]),
-        new("content.item_text", ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead, CustodyStep.OccurrencesRead]),
+        new("content.item_text", ["SELECT"], [CustodyStep.RawTextRead, CustodyStep.SanitizedTextRead, CustodyStep.OccurrencesRead, CustodyStep.PseudonymizedTextRead]),
         new("content.reversal_map", ["SELECT"], [CustodyStep.ReversalEntriesRead]),
         new("content.batch_origin", Of("SELECT"), Of(CustodyStep.OriginRead)),
         new("content.item_text", [Update], [CustodyStep.ItemEmptied]),

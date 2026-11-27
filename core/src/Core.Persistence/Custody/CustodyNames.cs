@@ -77,6 +77,7 @@ internal static class CustodyNames
         [CustodyStep.ReversalDeclined] = "reversal_declined",
         [CustodyStep.ReversalRevealed] = "reversal_revealed",
         [CustodyStep.ReversalDenied] = "reversal_denied",
+        [CustodyStep.PseudonymizedTextRead] = "pseudonymized_text_read",
     }.ToFrozenDictionary();
 
     private static readonly FrozenDictionary<CustodyReason, string> Reasons = new Dictionary<CustodyReason, string>

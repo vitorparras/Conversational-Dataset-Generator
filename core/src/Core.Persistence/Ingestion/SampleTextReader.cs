@@ -9,7 +9,10 @@ using Npgsql;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>The reading of the text of an item of the sample while the batch is open (#822): the event goes first, in the same transaction, and when anything refuses nothing is recorded.</summary>
+/// <summary>
+/// The reading of the pseudonymized text of an item of the sample while the batch is open (#822, #939): the event goes first, in the same transaction, and when anything refuses nothing is
+/// recorded. An item without the pseudonymized text is <see cref="ContentReadOutcome.Empty"/>, with nothing recorded and nothing opened.
+/// </summary>
 public sealed class SampleTextReader
 {
     private readonly NpgsqlDataSource dataSource;
@@ -45,22 +48,25 @@ public sealed class SampleTextReader
             return null;
         }
 
-        var sanitized = step == CustodyNames.Of(CustodyStep.SanitizedTextRead);
+        if (step == SampleTextStatements.Absent)
+        {
+            answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.Empty, RowId = request.ItemId };
+            return null;
+        }
+
         var item = new CustodyItem(CustodyItemKind.ItemText, request.ItemId);
-        var custodyStep = sanitized ? CustodyStep.SanitizedTextRead : CustodyStep.RawTextRead;
         var appended = await CustodyAppend.AppendAsync(
-            scope, CustodyEvent.Of(CustodyAuthor.Person(request.ReaderId), item, custodyStep, CustodyReason.ContentRead), cancellationToken).ConfigureAwait(false);
+            scope, CustodyEvent.Of(CustodyAuthor.Person(request.ReaderId), item, CustodyStep.PseudonymizedTextRead, CustodyReason.ContentRead), cancellationToken).ConfigureAwait(false);
         if (appended.Outcome != CustodyOutcome.Appended)
         {
             answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.NotRecorded, Refusal = appended, RowId = request.ItemId };
             return appended;
         }
 
-        return await OpenedAsync(scope, request, (appended, sanitized ? ContentColumns.SanitizedText : ContentColumns.RawText, answer), cancellationToken).ConfigureAwait(false);
+        return await OpenedAsync(scope, request, (appended, answer), cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task<CustodyResult?> OpenedAsync(
-        CustodyScope scope, SampleReading request, (CustodyResult Appended, ProtectedColumn Column, StrongBox<ContentReadResult> Answer) read, CancellationToken cancellationToken)
+    private async Task<CustodyResult?> OpenedAsync(CustodyScope scope, SampleReading request, (CustodyResult Appended, StrongBox<ContentReadResult> Answer) read, CancellationToken cancellationToken)
     {
         var stored = await SampleTextStatements.SealedAsync(scope, request, cancellationToken).ConfigureAwait(false);
         if (stored is not { } held)
@@ -75,8 +81,8 @@ public sealed class SampleTextReader
             return null;
         }
 
-        var text = protectedContent.Open(read.Column, request.DomainId, held.Sealed, held.Key);
-        read.Answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = text, Cleaned = held.Step == CustodyNames.Of(CustodyStep.SanitizedTextRead), RowId = request.ItemId };
+        var text = protectedContent.Open(ContentColumns.PseudonymizedText, request.DomainId, held.Sealed, held.Key);
+        read.Answer.Value = new ContentReadResult { Outcome = ContentReadOutcome.Read, Text = text, RowId = request.ItemId };
         return await CustodyAppend.CommitIfAppendedAsync(scope, read.Appended, cancellationToken).ConfigureAwait(false);
     }
 

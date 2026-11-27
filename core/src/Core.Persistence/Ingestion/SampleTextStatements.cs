@@ -7,11 +7,13 @@ namespace Core.Persistence.Ingestion;
 
 /// <summary>
 /// What the reading of the text of an item of the sample asks of the database inside the transaction of the chain:
-/// which step the item takes, and the sealed text with the key that opens it.
+/// which step the item takes, and the sealed pseudonymized text with the key that opens it.
 /// </summary>
 internal static class SampleTextStatements
 {
-    private const int StepColumn = 0;
+    /// <summary>The step the database answers for an item of the sample without the pseudonymized text, which takes no reading.</summary>
+    internal const string Absent = "pseudonymized_text_absent";
+
     private const int SealedColumn = 1;
     private const int EpochColumn = 2;
     private const int WrappedColumn = 3;
@@ -34,7 +36,7 @@ internal static class SampleTextStatements
         }
     }
 
-    internal static async Task<(string Step, byte[] Sealed, ContentKey Key)?> SealedAsync(CustodyScope scope, SampleReading request, CancellationToken cancellationToken)
+    internal static async Task<(byte[] Sealed, ContentKey Key)?> SealedAsync(CustodyScope scope, SampleReading request, CancellationToken cancellationToken)
     {
         var command = Command(scope, ContentQueries.ReadSampleText, request);
         await using (command.ConfigureAwait(false))
@@ -43,7 +45,7 @@ internal static class SampleTextStatements
             await using (reader.ConfigureAwait(false))
             {
                 return await reader.ReadAsync(cancellationToken).ConfigureAwait(false)
-                    ? (reader.GetString(StepColumn), (byte[])reader.GetValue(SealedColumn), new ContentKey(reader.GetInt32(EpochColumn), (byte[])reader.GetValue(WrappedColumn)))
+                    ? ((byte[])reader.GetValue(SealedColumn), new ContentKey(reader.GetInt32(EpochColumn), (byte[])reader.GetValue(WrappedColumn)))
                     : null;
             }
         }

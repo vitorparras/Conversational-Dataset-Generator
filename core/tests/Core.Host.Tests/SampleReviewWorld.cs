@@ -30,7 +30,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
 
     private SampleReviewWorld(SubmissionWorld submissions, SessionedHost host,
         (long Batch, (long Curator, long Colleague, long Stranger) people) ids,
-        (int? Size, int Messages, NpgsqlDataSource Desk, SampleReviewDesk Review) shape)
+        (int? Size, (string, string)[] Conversation, NpgsqlDataSource Desk, SampleReviewDesk Review) shape)
     {
         DeskSource = shape.Desk;
         Desk = shape.Review;
@@ -41,7 +41,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
         Colleague = ids.people.Colleague;
         Stranger = ids.people.Stranger;
         Reviews = new BatchReviews(submissions.DataSource, shape.Size);
-        Messages = shape.Messages;
+        Conversation = shape.Conversation;
     }
 
     internal SessionedHost Host { get; }
@@ -69,7 +69,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
 
     private static CancellationToken Token => TestContext.Current.CancellationToken;
 
-    private int Messages { get; }
+    private (string, string)[] Conversation { get; }
 
     /// <summary>The connection of the desk and of the register of the batches, apart from the one of the gates so that losing it leaves the person signed in.</summary>
     private NpgsqlDataSource DeskSource { get; }
@@ -82,8 +82,9 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     /// <param name="messages">How many messages the conversation of the batch has, which is how many items.</param>
     /// <param name="log">A provider the host also writes its log to, to judge what the routes write there; none when the test does not look at the log.</param>
     /// <param name="recognizer">What the recognition finds in the texts of the batch; none when the world answers with the one every submission uses.</param>
+    /// <param name="mention">A mention that opens the text of every message, for the recognition to find; none when the texts mention nobody.</param>
     [SuppressMessage("Reliability", "CA2000", Justification = "The world takes the submissions and the host it is given and lets go of them with itself.")]
-    internal static async Task<SampleReviewWorld> StartAsync(int? size = 2, int messages = 4, ILoggerProvider? log = null, IRecognizer? recognizer = null)
+    internal static async Task<SampleReviewWorld> StartAsync(int? size = 2, int messages = 4, ILoggerProvider? log = null, IRecognizer? recognizer = null, string? mention = null)
     {
         var submissions = await SubmissionWorld.CreateAsync(recognizer: recognizer);
         await submissions.Database.RunAsOwnerAsync(
@@ -92,7 +93,8 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
         var curator = await PersonAsync(submissions, "zqx-curadora");
         var colleague = await PersonAsync(submissions, "zqx-colega");
         var stranger = await PersonAsync(submissions, "zqx-curadora-sem-concessao");
-        var outcome = await submissions.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(Entries(messages))));
+        var conversation = Entries(messages, mention);
+        var outcome = await submissions.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(conversation)));
         Assert.Equal(SubmissionKind.Done, outcome.Kind);
         var source = submissions.DataSource;
         var staff = new OperatorAdministration(
@@ -114,7 +116,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
                 BatchRoutes.Map(routes);
             },
             Token);
-        return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, (curator, colleague, stranger)), (size, messages, held, desk));
+        return new SampleReviewWorld(submissions, host, (outcome.Batch!.Value, (curator, colleague, stranger)), (size, conversation, held, desk));
     }
 
     internal string ReviewRoute => RouteOf(Batch);
@@ -167,7 +169,7 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
     /// <summary>Submits the conversation of the world again: the same file, so the same digest, left open as a batch of its own.</summary>
     internal async Task<long> SubmitCopyAsync()
     {
-        var outcome = await Submissions.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(Entries(Messages))));
+        var outcome = await Submissions.SubmitAsync(SubmissionWorld.Request(SubmissionWorld.Messages(Conversation)));
         Assert.Equal(SubmissionKind.Done, outcome.Kind);
         return outcome.Batch!.Value;
     }
@@ -223,7 +225,8 @@ internal sealed class SampleReviewWorld : IAsyncDisposable
         await Submissions.DisposeAsync();
     }
 
-    private static (string, string)[] Entries(int messages) => [.. Enumerable.Range(0, messages).Select(at => ("ZQXREMETENTE", $"ZQXTEXTO{at}"))];
+    private static (string, string)[] Entries(int messages, string? mention) =>
+        [.. Enumerable.Range(0, messages).Select(at => ("ZQXREMETENTE", mention is null ? $"ZQXTEXTO{at}" : $"{mention} viu ZQXTEXTO{at}"))];
 
     private static async Task<long> PersonAsync(SubmissionWorld submissions, string name) =>
         long.Parse((await submissions.Database.FirstColumnAsOwnerAsync($"SELECT id::text FROM public.person WHERE name = '{name}'"))[0], CultureInfo.InvariantCulture);

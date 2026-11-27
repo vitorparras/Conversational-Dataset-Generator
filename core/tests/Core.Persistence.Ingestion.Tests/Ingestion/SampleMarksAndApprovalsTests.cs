@@ -1,3 +1,4 @@
+using Core.Persistence.Content;
 using Core.Persistence.Custody;
 using Core.Persistence.Ingestion;
 using Core.Persistence.Tests.Fixtures;
@@ -14,6 +15,12 @@ public sealed class SampleMarksAndApprovalsTests
     private const string Position = "SELECT reviewed_position FROM content.ingestion_batch WHERE id = @id";
     private const string State = "SELECT state || ',' || coalesce(reviewed_by::text, '-') FROM content.ingestion_batch WHERE id = @id";
     private const string Closings = "SELECT count(*) FROM public.custody_event WHERE step IN ('batch_reviewed', 'batch_closed')";
+
+    /// <summary>Takes the pseudonymized text away from the item at one place of the sample, as an item written before the pseudonymization had none.</summary>
+    private const string StripAt =
+        "ALTER TABLE content.item_text DISABLE TRIGGER USER; UPDATE content.item_text SET pseudonymized_text = NULL "
+        + "WHERE id = (string_to_array((SELECT review_sample FROM content.ingestion_batch WHERE id = @id), ',')::bigint[])[@place]; "
+        + "ALTER TABLE content.item_text ENABLE TRIGGER USER";
 
     [DatabaseFact]
     public async Task AMarkIsTheNextPlaceAndIsWrittenForGood()
@@ -121,6 +128,48 @@ public sealed class SampleMarksAndApprovalsTests
             new BatchReviewing(IngestionWorld.Domain, batch, IngestionWorld.Person, "nome", 1), TestContext.Current.CancellationToken);
 
         Assert.Equal((BatchReviewOutcome.Rejected, $"rejected,{IngestionWorld.Person}"), (rejected.Outcome, (string)(await world.AsSuperuserAsync(State, ("id", batch)))!));
+    }
+
+    [DatabaseTheory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public async Task AnApprovalIsRefusedWhenOneItemOfTheSampleAloneLacksThePseudonymizedTextWhereverItIs(int place)
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world));
+        _ = await world.AsSuperuserAsync(StripAt, ("id", batch), ("place", place));
+        _ = await world.AsSuperuserAsync("UPDATE content.ingestion_batch SET reviewed_position = 3 WHERE id = @id", ("id", batch));
+
+        var refused = await ApproveAsync(world, batch);
+
+        Assert.Equal((BatchReviewOutcome.NotPseudonymized, "open,-"), (refused.Outcome, (string)(await world.AsSuperuserAsync(State, ("id", batch)))!));
+    }
+
+    [DatabaseFact]
+    public async Task AMarkIsRefusedWhenAnItemBeforeItLacksThePseudonymizedTextEvenIfThatOneWasMarkedBefore()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world));
+        _ = await world.AsSuperuserAsync(StripAt, ("id", batch), ("place", 1));
+        _ = await world.AsSuperuserAsync("UPDATE content.ingestion_batch SET reviewed_position = 1 WHERE id = @id", ("id", batch));
+
+        var refused = await MarkAsync(world, batch, 2);
+
+        Assert.Equal((BatchReviewOutcome.NotPseudonymized, 1), (refused.Outcome, (int)(await world.AsSuperuserAsync(Position, ("id", batch)))!));
+    }
+
+    [DatabaseFact]
+    public async Task TheStatementOfTheMarkItselfMarksNoPlaceUpToAnItemWithoutThePseudonymizedText()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world));
+        _ = await world.AsSuperuserAsync(StripAt, ("id", batch), ("place", 2));
+        var mark = $"WITH changed AS ({ContentQueries.CloseBatchPlace} RETURNING id) SELECT count(*) FROM changed";
+
+        var first = await world.InDomainAsync(IngestionWorld.Domain, mark, ("id", batch), ("position", 1));
+        var second = await world.InDomainAsync(IngestionWorld.Domain, mark, ("id", batch), ("position", 2));
+
+        Assert.Equal((1L, 0L, 1), ((long)first!, (long)second!, (int)(await world.AsSuperuserAsync(Position, ("id", batch)))!));
     }
 
     [Fact]

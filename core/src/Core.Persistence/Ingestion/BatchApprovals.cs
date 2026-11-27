@@ -9,7 +9,8 @@ namespace Core.Persistence.Ingestion;
 
 /// <summary>
 /// The approval of a batch after its whole sample was reviewed clean (#822): review and acceptance are two events and two row changes in one transaction, with the event of the
-/// pseudonymization before the acceptance when some item of the batch is pseudonymized (#102).
+/// pseudonymization before the acceptance when some item of the batch is pseudonymized (#102). A sample with an item without the pseudonymized text is not approved, even when every place
+/// of it was marked (#939).
 /// </summary>
 public sealed class BatchApprovals
 {
@@ -51,7 +52,8 @@ public sealed class BatchApprovals
     {
         await ReviewStatements.DeclareDomainAsync(scope, request.DomainId, cancellationToken).ConfigureAwait(false);
         var held = await ReviewStatements.HeldAsync(scope, request.BatchId, cancellationToken).ConfigureAwait(false);
-        return BatchReviews.Refusal(held, drawing: false);
+        return BatchReviews.Refusal(held, drawing: false)
+            ?? (await ReviewStatements.PseudonymizedAsync(scope, request.BatchId, held!.Sample!.Count, cancellationToken).ConfigureAwait(false) ? null : BatchReviewOutcome.NotPseudonymized);
     }
 
     private static async Task<BatchReviewOutcome?> CloseAsync(CustodyScope scope, BatchApproval request, CancellationToken cancellationToken)

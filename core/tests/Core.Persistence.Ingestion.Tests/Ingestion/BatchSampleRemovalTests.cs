@@ -27,7 +27,7 @@ public sealed class BatchSampleRemovalTests
     public async Task ApprovalCancelledLeavesTheBatchOpenAndUnreviewed()
     {
         await using var world = await IngestionWorld.CreateAsync();
-        var batch = await DrawnAsync(world, 2);
+        var batch = await DrawnAsync(world, 2, IngestionWorld.AddPseudonymizedItemAsync);
         await CancelledWhileWaitingAsync(
             world, batch, token => new BatchApprovals(world.DataSource).ApproveAsync(new BatchApproval(IngestionWorld.Domain, batch, IngestionWorld.Person), token));
 
@@ -108,12 +108,14 @@ public sealed class BatchSampleRemovalTests
     private static async Task<object?> ItemsAsync(BatchesWorld world, long batch) =>
         await world.AsSuperuserAsync("SELECT count(*) FROM content.item_text WHERE batch_id = @id", ("id", batch));
 
-    private static async Task<long> DrawnAsync(BatchesWorld world, int items)
+    private static Task<long> DrawnAsync(BatchesWorld world, int items) => DrawnAsync(world, items, IngestionWorld.AddItemAsync);
+
+    private static async Task<long> DrawnAsync(BatchesWorld world, int items, Func<BatchesWorld, long, Task<long>> add)
     {
         var batch = await IngestionWorld.OpenAsync(world);
         for (var index = 0; index < items; index++)
         {
-            _ = await IngestionWorld.AddItemAsync(world, batch);
+            _ = await add(world, batch);
         }
 
         var drawn = await new BatchReviews(world.DataSource, 3).DrawAsync(new BatchSampling(IngestionWorld.Domain, batch, IngestionWorld.Person), TestContext.Current.CancellationToken);

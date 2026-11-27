@@ -85,6 +85,44 @@ public sealed class SampleMarksAndApprovalsTests
             (accepted.Outcome, repeated.Outcome, (string)(await world.AsSuperuserAsync(State, ("id", second)))!, (long)(await world.AsSuperuserAsync(Closings))!));
     }
 
+    [DatabaseFact]
+    public async Task AMarkOfAnItemWithoutThePseudonymizedTextIsRefusedAndWritesNothing()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world), IngestionWorld.AddItemAsync);
+
+        var refused = await MarkAsync(world, batch, 1);
+
+        Assert.Equal((BatchReviewOutcome.NotPseudonymized, 0), (refused.Outcome, (int)(await world.AsSuperuserAsync(Position, ("id", batch)))!));
+    }
+
+    [DatabaseFact]
+    public async Task AnApprovalOfASampleWithAnItemWithoutThePseudonymizedTextIsRefusedEvenWhenEveryPlaceWasMarked()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world), IngestionWorld.AddItemAsync);
+        _ = await world.AsSuperuserAsync("UPDATE content.ingestion_batch SET reviewed_position = 3 WHERE id = @id", ("id", batch));
+        var events = (long)(await world.AsSuperuserAsync(Closings))!;
+
+        var refused = await ApproveAsync(world, batch);
+
+        Assert.Equal(
+            (BatchReviewOutcome.NotPseudonymized, "open,-", events),
+            (refused.Outcome, (string)(await world.AsSuperuserAsync(State, ("id", batch)))!, (long)(await world.AsSuperuserAsync(Closings))!));
+    }
+
+    [DatabaseFact]
+    public async Task AFindingStillRejectsASampleWithAnItemWithoutThePseudonymizedText()
+    {
+        await using var world = await IngestionWorld.CreateAsync();
+        var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world), IngestionWorld.AddItemAsync);
+
+        var rejected = await new BatchReviews(world.DataSource, 3).ReviewAsync(
+            new BatchReviewing(IngestionWorld.Domain, batch, IngestionWorld.Person, "nome", 1), TestContext.Current.CancellationToken);
+
+        Assert.Equal((BatchReviewOutcome.Rejected, $"rejected,{IngestionWorld.Person}"), (rejected.Outcome, (string)(await world.AsSuperuserAsync(State, ("id", batch)))!));
+    }
+
     [Fact]
     public void ARefusalByCollisionIsOneThatWroteNothingAndMayBeAskedAgain()
     {
@@ -115,11 +153,13 @@ public sealed class SampleMarksAndApprovalsTests
         return opened.BatchId!.Value;
     }
 
-    private static async Task<long> DrawnAsync(BatchesWorld world, long batch)
+    private static Task<long> DrawnAsync(BatchesWorld world, long batch) => DrawnAsync(world, batch, IngestionWorld.AddPseudonymizedItemAsync);
+
+    private static async Task<long> DrawnAsync(BatchesWorld world, long batch, Func<BatchesWorld, long, Task<long>> add)
     {
         for (var item = 0; item < 3; item++)
         {
-            _ = await IngestionWorld.AddItemAsync(world, batch);
+            _ = await add(world, batch);
         }
 
         var drawn = await new BatchReviews(world.DataSource, 3).DrawAsync(new BatchSampling(IngestionWorld.Domain, batch, IngestionWorld.Person), TestContext.Current.CancellationToken);

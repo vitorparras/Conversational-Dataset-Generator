@@ -61,8 +61,8 @@ public sealed class SampleCollisionTests
     private static async Task<long> DrawnAsync(BatchesWorld world)
     {
         var batch = await IngestionWorld.OpenAsync(world);
-        _ = await IngestionWorld.AddItemAsync(world, batch);
-        _ = await IngestionWorld.AddItemAsync(world, batch);
+        _ = await IngestionWorld.AddPseudonymizedItemAsync(world, batch);
+        _ = await IngestionWorld.AddPseudonymizedItemAsync(world, batch);
         var drawn = await new BatchReviews(world.DataSource, 2).DrawAsync(new BatchSampling(IngestionWorld.Domain, batch, IngestionWorld.Person), TestContext.Current.CancellationToken);
         Assert.Equal(BatchReviewOutcome.Drawn, drawn.Outcome);
         return batch;

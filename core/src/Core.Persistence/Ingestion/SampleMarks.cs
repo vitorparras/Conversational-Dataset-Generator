@@ -3,7 +3,10 @@ using Npgsql;
 
 namespace Core.Persistence.Ingestion;
 
-/// <summary>The progress of the review of the sample (#822): each item is marked reviewed in the order of the draw, and the database refuses a mark that is not the next.</summary>
+/// <summary>
+/// The progress of the review of the sample (#822): each item is marked reviewed in the order of the draw, and the database refuses a mark that is not the next, and the mark of an item
+/// without the pseudonymized text (#939).
+/// </summary>
 public sealed class SampleMarks
 {
     private readonly NpgsqlDataSource dataSource;
@@ -37,6 +40,11 @@ public sealed class SampleMarks
             if (refused is not null)
             {
                 return new BatchReviewResult { Outcome = refused.Value };
+            }
+
+            if (!await ReviewStatements.PseudonymizedAsync(scope, request.BatchId, request.Place, cancellationToken).ConfigureAwait(false))
+            {
+                return new BatchReviewResult { Outcome = BatchReviewOutcome.NotPseudonymized };
             }
 
             var rows = await ReviewStatements.ChangeAsync(

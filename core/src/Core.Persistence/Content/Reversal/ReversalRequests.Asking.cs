@@ -14,7 +14,7 @@ public sealed partial class ReversalRequests
         var judged = ReversalRequestRule.Judge(draft);
         return judged.Verdict == ReversalRequestVerdict.Incomplete
             ? Task.FromResult(new ReversalResult(ReversalOutcome.Incomplete) { Missing = judged.Missing })
-            : ReversalAttempts.RetriedAsync(dataSource, scope => AskInAsync(scope, by, judged, cancellationToken), cancellationToken);
+            : ReversalAttempts.RetriedAsync(dataSource, scope => AskInAsync(scope, by, judged, cancellationToken), time, cancellationToken);
     }
 
     private async Task<(ReversalResult, CustodyEvent?)> AskInAsync(CustodyScope scope, (int Domain, long Person) by, ReversalRequestJudgment judged, CancellationToken cancellationToken)

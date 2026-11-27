@@ -17,7 +17,8 @@ internal static class ReversalRows
         + "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "
         + "SELECT @person, false, 'reversal_request', r.id, 'reversal_requested', 'administrative_act', 'PESSOA_48291307' FROM r RETURNING item_id";
 
-    private const string Authorization =
+    /// <summary>The authorization of @request by @person until now plus @term, with its event, in one statement; the identifier of the authorization.</summary>
+    public const string Authorization =
         "WITH a AS (INSERT INTO content.reversal_authorization (domain_id, request_id, authorized_by, valid_until) "
         + "VALUES (@domain, @request, @person, now() + @term::interval) RETURNING id, request_id) "
         + "INSERT INTO public.custody_event (actor_person_id, actor_system, item_kind, item_id, step, reason, reference) "

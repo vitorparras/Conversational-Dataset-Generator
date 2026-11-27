@@ -85,7 +85,7 @@ public sealed class ReversalRevelations
             await DeclareAsync(scope, act.DomainId, cancellationToken).ConfigureAwait(false);
             request = await ReversalStanding.ReadAsync(scope, act.RequestId, time.GetUtcNow(), cancellationToken).ConfigureAwait(false);
             return await JudgeAsync(scope, act, request, cancellationToken).ConfigureAwait(false);
-        }, cancellationToken).ConfigureAwait(false);
+        }, time, cancellationToken).ConfigureAwait(false);
         return recorded.Outcome == ReversalOutcome.Recorded
             ? await OpenAsync(act, request!, cancellationToken).ConfigureAwait(false)
             : new ReversalRevelation(recorded.Outcome) { Refusal = recorded.Refusal };

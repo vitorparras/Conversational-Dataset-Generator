@@ -20,7 +20,7 @@ internal sealed class ReversalDeciding
     }
 
     internal Task<ReversalResult> DecideAsync(ReversalAct act, DateTimeOffset? until, CancellationToken cancellationToken) =>
-        ReversalAttempts.RetriedAsync(dataSource, scope => DecideInAsync(scope, act, until, cancellationToken), cancellationToken);
+        ReversalAttempts.RetriedAsync(dataSource, scope => DecideInAsync(scope, act, until, cancellationToken), time, cancellationToken);
 
     private static async Task<(ReversalResult, CustodyEvent?)> WriteAsync(CustodyScope scope, ReversalAct act, DateTimeOffset? until, CancellationToken cancellationToken)
     {

@@ -16,6 +16,9 @@ internal sealed class PostgresFixture
     private const string DatabaseName = "cdg";
     private const string SearchScript = "find / \\( -path /proc -o -path /sys -o -path /dev \\) -prune -o -type f -readable -print0 2>/dev/null | xargs -0 -r grep -saoHP -e \"$1\"; true";
     private static readonly TimeSpan HealthyWithin = TimeSpan.FromMinutes(3);
+
+    // Only the test server takes prepared transactions: a test holds a writer in its commit with them, and the image the product ships stays at none.
+    private static readonly string[] ServerCommand = ["postgres", "-c", "max_prepared_transactions=8"];
     private static readonly Lazy<Task<PostgresFixture>> Shared = new(StartAsync);
 
     private readonly IContainer container;
@@ -49,6 +52,7 @@ internal sealed class PostgresFixture
         var appPassword = reuse is null ? NewPassword() : DatabaseReuse.Password(reuse, "app");
         var builder = new ContainerBuilder(image)
             .WithImagePullPolicy(_ => false)
+            .WithCommand(ServerCommand)
             .WithEnvironment("POSTGRES_PASSWORD", superuserPassword)
             .WithEnvironment("DATABASE_OWNER_PASSWORD", ownerPassword)
             .WithEnvironment("DATABASE_APP_PASSWORD", appPassword)

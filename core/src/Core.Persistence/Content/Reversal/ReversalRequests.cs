@@ -12,18 +12,19 @@ public sealed partial class ReversalRequests
 {
     private readonly NpgsqlDataSource dataSource;
     private readonly ProtectedContent protectedContent;
+    private readonly TimeProvider time;
     private readonly ReversalDeciding deciding;
 
     /// <summary>The requests over the database, sealed through the protected content, at the moments the clock gives.</summary>
     /// <param name="dataSource">The source of the connections, with the application's credential.</param>
     /// <param name="protectedContent">Seals why a request asks and what for.</param>
-    /// <param name="time">The clock that says whether an authorization is in force.</param>
+    /// <param name="time">The clock that says whether an authorization is in force, and on which an act that conflicted pauses before it runs again.</param>
     public ReversalRequests(NpgsqlDataSource dataSource, ProtectedContent protectedContent, TimeProvider time)
     {
         ArgumentNullException.ThrowIfNull(dataSource);
         ArgumentNullException.ThrowIfNull(protectedContent);
         ArgumentNullException.ThrowIfNull(time);
-        (this.dataSource, this.protectedContent, deciding) = (dataSource, protectedContent, new ReversalDeciding(dataSource, time));
+        (this.dataSource, this.protectedContent, this.time, deciding) = (dataSource, protectedContent, time, new ReversalDeciding(dataSource, time));
     }
 
     /// <summary>Asks for the reversal of one marker in one item: written with its event, or refused with an event of its own, or, when incomplete, nothing.</summary>

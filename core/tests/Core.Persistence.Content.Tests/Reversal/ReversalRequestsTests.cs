@@ -123,6 +123,57 @@ public sealed class ReversalRequestsTests
     }
 
     [DatabaseFact]
+    public async Task SecondAuthorizationWhileTheFirstCommitsIsClosed()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var (second, third) = (await SecondCuratorAsync(world), await SecondCuratorAsync(world, "zqx-curator-3"));
+        var request = await AskedAsync(world);
+        await using var first = await PreparedAuthorization.PrepareAsync(world, request, second);
+        var clock = new PauseClock();
+
+        var decided = new ReversalRequests(world.DataSource, world.Content, clock).AuthorizeAsync(new ReversalAct(1, request, third), DateTimeOffset.UtcNow.AddDays(7), Token);
+        _ = await Task.WhenAny(clock.Waited, decided).WaitAsync(TimeSpan.FromMinutes(1), Token);
+        await first.CommitAsync();
+        clock.Advance(TimeSpan.FromSeconds(1));
+        var answer = await decided.WaitAsync(TimeSpan.FromMinutes(1), Token);
+
+        Assert.Equal((ReversalOutcome.Closed, null, 1L), (answer.Outcome, answer.Refusal?.Outcome, await CountAsync(world, CountAuthorizations)));
+        Assert.Equal(TimeSpan.FromMilliseconds(200), clock.Due);
+    }
+
+    [DatabaseFact]
+    public async Task AuthorizationWithNoOneElseDoesNotPause()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var second = await SecondCuratorAsync(world);
+        var request = await AskedAsync(world);
+        var clock = new PauseClock();
+
+        var answer = await new ReversalRequests(world.DataSource, world.Content, clock)
+            .AuthorizeAsync(new ReversalAct(1, request, second), DateTimeOffset.UtcNow.AddDays(7), Token).WaitAsync(TimeSpan.FromMinutes(1), Token);
+
+        Assert.Equal((ReversalOutcome.Recorded, false), (answer.Outcome, clock.Waited.IsCompleted));
+    }
+
+    [DatabaseFact]
+    public async Task CancellationDuringThePauseEndsTheAuthorization()
+    {
+        await using var world = await ContentWorld.CreateAsync();
+        var (second, third) = (await SecondCuratorAsync(world), await SecondCuratorAsync(world, "zqx-curator-3"));
+        var request = await AskedAsync(world);
+        await using var first = await PreparedAuthorization.PrepareAsync(world, request, second);
+        var clock = new PauseClock();
+        using var cancel = CancellationTokenSource.CreateLinkedTokenSource(Token);
+        var decided = new ReversalRequests(world.DataSource, world.Content, clock).AuthorizeAsync(new ReversalAct(1, request, third), DateTimeOffset.UtcNow.AddDays(7), cancel.Token);
+        await clock.Waited.WaitAsync(TimeSpan.FromMinutes(1), Token);
+
+        await cancel.CancelAsync();
+
+        _ = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => decided.WaitAsync(TimeSpan.FromMinutes(1), Token));
+        Assert.Equal(0L, await CountAsync(world, CountAuthorizations));
+    }
+
+    [DatabaseFact]
     public async Task AuthorizationWithATermInThePastIsRefused()
     {
         await using var world = await ContentWorld.CreateAsync();

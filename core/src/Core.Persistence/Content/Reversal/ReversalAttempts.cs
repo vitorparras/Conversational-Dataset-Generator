@@ -5,25 +5,32 @@ using Npgsql;
 
 namespace Core.Persistence.Content.Reversal;
 
-/// <summary>Runs an act on a request in a serializable transaction with its event, again while it conflicts with another, up to three times.</summary>
+/// <summary>Runs an act on a request in a serializable transaction with its event, again after a pause while it conflicts with another, up to three times.</summary>
 internal static class ReversalAttempts
 {
     /// <summary>How many times an act that conflicts with another is run, the first included.</summary>
     internal const int Attempts = 3;
 
-    /// <summary>Runs the act until it is not a conflict with another, up to three times.</summary>
+    /// <summary>
+    /// The wait before an act that conflicted runs again: the other writer may be finishing its commit, and while it is not yet seen a try at once meets the same conflict.
+    /// </summary>
+    internal static readonly TimeSpan Pause = TimeSpan.FromMilliseconds(200);
+
+    /// <summary>Runs the act until it is not a conflict with another, up to three times, pausing on the clock given between tries.</summary>
     internal static async Task<ReversalResult> RetriedAsync(
-        NpgsqlDataSource dataSource, Func<CustodyScope, Task<(ReversalResult, CustodyEvent?)>> act, CancellationToken cancellationToken)
+        NpgsqlDataSource dataSource, Func<CustodyScope, Task<(ReversalResult, CustodyEvent?)>> act, TimeProvider time, CancellationToken cancellationToken)
     {
         var tries = 0;
-        ReversalResult result;
-        do
+        while (true)
         {
-            result = await OnceAsync(dataSource, act, cancellationToken).ConfigureAwait(false);
-        }
-        while (result.Refusal?.Outcome == CustodyOutcome.Conflict && ++tries < Attempts);
+            var result = await OnceAsync(dataSource, act, cancellationToken).ConfigureAwait(false);
+            if (result.Refusal?.Outcome != CustodyOutcome.Conflict || ++tries >= Attempts)
+            {
+                return result;
+            }
 
-        return result;
+            await Task.Delay(Pause, time, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     /// <summary>Runs the act and records the event it asks for, which commits it; an act that asks for none writes nothing.</summary>

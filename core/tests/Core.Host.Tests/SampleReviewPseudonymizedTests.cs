@@ -47,7 +47,7 @@ public sealed class SampleReviewPseudonymizedTests
         var mark = await world.PostAsync(world.MarkRoute(1), world.Curator);
 
         Assert.Equal((HttpStatusCode.OK, HttpStatusCode.SeeOther), (review.Status, mark.Status));
-        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.NotPseudonymizedMark}", mark.Location, StringComparison.Ordinal);
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.NoTextMark}", mark.Location, StringComparison.Ordinal);
         Assert.Equal(2, review.Page.Split(SampleTexts.Absent).Length - 1);
         Assert.DoesNotContain("ZQXTEXTO", review.Page, StringComparison.Ordinal);
         Assert.DoesNotContain(world.MarkRoute(1), review.Page, StringComparison.Ordinal);
@@ -67,7 +67,7 @@ public sealed class SampleReviewPseudonymizedTests
 
         var held = (await world.StateAsync())!;
         Assert.Equal(HttpStatusCode.SeeOther, approved.Status);
-        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.NotPseudonymizedMark}", approved.Location, StringComparison.Ordinal);
+        Assert.EndsWith($"?{SampleReviewScreen.ResultKey}={SampleReviewScreen.NoTextMark}", approved.Location, StringComparison.Ordinal);
         Assert.Equal((BatchState.Open, null, 2), (held.State, held.ReviewerId, held.ReviewedPosition));
         Assert.DoesNotContain(await world.StepsAsync("ingestion_batch"), step => step.Contains("batch_reviewed", StringComparison.Ordinal));
     }

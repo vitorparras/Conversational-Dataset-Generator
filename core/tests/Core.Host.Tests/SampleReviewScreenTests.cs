@@ -76,10 +76,10 @@ public sealed class SampleReviewScreenTests
         {
             ["Sample"] = Drawn(reviewed: 1),
             ["Action"] = Action,
-            ["Result"] = SampleReviewScreen.NotPseudonymizedMark,
+            ["Result"] = SampleReviewScreen.NoTextMark,
         });
 
-        Assert.Equal("sem-pseudonimizado", SampleReviewScreen.NotPseudonymizedMark);
+        Assert.Equal("sem-pseudonimizado", SampleReviewScreen.NoTextMark);
         Assert.Contains("class=\"notice notice--error\" role=\"alert\"", page, StringComparison.Ordinal);
         const string Refused = "O passo não foi feito: a amostra tem item sem texto pseudonimizado, e ele não pode ser marcado como revisado nem o lote aprovado. "
             + "Confira o estado abaixo.";

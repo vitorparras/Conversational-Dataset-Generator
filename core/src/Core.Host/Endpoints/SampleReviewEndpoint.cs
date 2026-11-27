@@ -50,7 +50,7 @@ internal static class SampleReviewEndpoint
         [BatchReviewOutcome.FindingRefused] = SampleReviewScreen.RefusedMark,
         [BatchReviewOutcome.PlaceNotNext] = SampleReviewScreen.RefusedMark,
         [BatchReviewOutcome.ReviewIncomplete] = SampleReviewScreen.RefusedMark,
-        [BatchReviewOutcome.NotPseudonymized] = SampleReviewScreen.NotPseudonymizedMark,
+        [BatchReviewOutcome.NotPseudonymized] = SampleReviewScreen.NoTextMark,
     }.ToFrozenDictionary();
 
     private static IResult Back(HttpContext context, long id, string mark) => PageRedirect.Of(context, $"{ScreenPaths.BatchReviewOf(id)}?{SampleReviewScreen.ResultKey}={mark}");

@@ -8,7 +8,7 @@
 
 @if (ResultNotice is { } result)
 {
-    <Notice Kind="@(Result is RefusedMark or NotPseudonymizedMark ? Notice.Tone.Error : Notice.Tone.Info)">@result</Notice>
+    <Notice Kind="@(Result is RefusedMark or NoTextMark ? Notice.Tone.Error : Notice.Tone.Info)">@result</Notice>
 }
 @if (Sample.Approved is { } approval)
 {
@@ -123,7 +123,7 @@ else
     internal const string RefusedMark = "recusado";
 
     /// <summary>The step was refused because an item of the sample has no pseudonymized text, which is neither marked as reviewed nor let into an approval.</summary>
-    internal const string NotPseudonymizedMark = "sem-pseudonimizado";
+    internal const string NoTextMark = "sem-pseudonimizado";
 
     /// <summary>One item of the sample, at its place in the draw, in its pseudonymized text, which is null when the item has none, and whether it was reviewed.</summary>
     public sealed record Item(int Position, string? Text, bool Reviewed);
@@ -162,7 +162,7 @@ else
         MarkedMark => "O item foi marcado como revisado.",
         RepeatedMark => "Esse passo já estava feito: a tela mostra o que ficou registrado.",
         RefusedMark => "O passo não foi feito: o item não está na vez ou o lote não aceita mais esse passo. Confira o estado abaixo.",
-        NotPseudonymizedMark => "O passo não foi feito: a amostra tem item sem texto pseudonimizado, e ele não pode ser marcado como revisado nem o lote aprovado. Confira o estado abaixo.",
+        NoTextMark => "O passo não foi feito: a amostra tem item sem texto pseudonimizado, e ele não pode ser marcado como revisado nem o lote aprovado. Confira o estado abaixo.",
         _ => null,
     };
 

@@ -16,6 +16,13 @@ public sealed class SampleMarksAndApprovalsTests
     private const string State = "SELECT state || ',' || coalesce(reviewed_by::text, '-') FROM content.ingestion_batch WHERE id = @id";
     private const string Closings = "SELECT count(*) FROM public.custody_event WHERE step IN ('batch_reviewed', 'batch_closed')";
 
+    /// <summary>
+    /// Marks the sample up to a place at once, as a review that went that far before the pseudonymized text was asked of every item; the database lets a mark be only the next place.
+    /// </summary>
+    private const string MarkedUpTo =
+        "ALTER TABLE content.ingestion_batch DISABLE TRIGGER USER; UPDATE content.ingestion_batch SET reviewed_position = @place WHERE id = @id; "
+        + "ALTER TABLE content.ingestion_batch ENABLE TRIGGER USER";
+
     /// <summary>Takes the pseudonymized text away from the item at one place of the sample, as an item written before the pseudonymization had none.</summary>
     private const string StripAt =
         "ALTER TABLE content.item_text DISABLE TRIGGER USER; UPDATE content.item_text SET pseudonymized_text = NULL "
@@ -108,7 +115,7 @@ public sealed class SampleMarksAndApprovalsTests
     {
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world), IngestionWorld.AddItemAsync);
-        _ = await world.AsSuperuserAsync("UPDATE content.ingestion_batch SET reviewed_position = 3 WHERE id = @id", ("id", batch));
+        _ = await world.AsSuperuserAsync(MarkedUpTo, ("id", batch), ("place", 3));
         var events = (long)(await world.AsSuperuserAsync(Closings))!;
 
         var refused = await ApproveAsync(world, batch);
@@ -138,7 +145,7 @@ public sealed class SampleMarksAndApprovalsTests
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world));
         _ = await world.AsSuperuserAsync(StripAt, ("id", batch), ("place", place));
-        _ = await world.AsSuperuserAsync("UPDATE content.ingestion_batch SET reviewed_position = 3 WHERE id = @id", ("id", batch));
+        _ = await world.AsSuperuserAsync(MarkedUpTo, ("id", batch), ("place", 3));
 
         var refused = await ApproveAsync(world, batch);
 
@@ -151,7 +158,7 @@ public sealed class SampleMarksAndApprovalsTests
         await using var world = await IngestionWorld.CreateAsync();
         var batch = await DrawnAsync(world, await IngestionWorld.OpenAsync(world));
         _ = await world.AsSuperuserAsync(StripAt, ("id", batch), ("place", 1));
-        _ = await world.AsSuperuserAsync("UPDATE content.ingestion_batch SET reviewed_position = 1 WHERE id = @id", ("id", batch));
+        _ = await world.AsSuperuserAsync(MarkedUpTo, ("id", batch), ("place", 1));
 
         var refused = await MarkAsync(world, batch, 2);
 

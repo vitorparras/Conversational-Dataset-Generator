@@ -107,7 +107,11 @@
         <hr />
 
         <section id="sem-pseudonimizado" aria-labelledby="sem-pseudonimizado-estado">
-            <p id="sem-pseudonimizado-estado"><strong>Estado: item sem texto pseudonimizado.</strong> O item 2 não tem texto pseudonimizado: a tela não mostra texto nenhum dele e não oferece marcá-lo como revisado; o lote não é aprovado enquanto ele estiver na amostra, e ainda pode ser reprovado.</p>
+            <p id="sem-pseudonimizado-estado"><strong>Estado: item sem texto pseudonimizado.</strong> O item 2 não tem texto pseudonimizado, e a Curadoria tentou marcá-lo como revisado: a tela não mostra texto nenhum dele e não oferece marcá-lo como revisado; o lote não é aprovado enquanto ele estiver na amostra, e ainda pode ser reprovado.</p>
+            <div class="notice notice--error" role="alert">
+                <span class="notice__mark" aria-hidden="true">✕</span>
+                <p><span class="notice__kind">Erro:</span> O passo não foi feito: a amostra tem item sem texto pseudonimizado, e ele não pode ser marcado como revisado nem o lote aprovado. Confira o estado abaixo.</p>
+            </div>
             <ol class="sample">
                 <li id="sem-pseudonimizado-item-2" class="sample__item">
                     <section class="panel" aria-labelledby="sem-pseudonimizado-item-2-titulo">

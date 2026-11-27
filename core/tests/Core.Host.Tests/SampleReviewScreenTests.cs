@@ -69,6 +69,24 @@ public sealed class SampleReviewScreenTests
         Assert.Contains($"href=\"{Action}/itens/2/achado\"", page, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public async Task AStepRefusedForAnItemWithoutThePseudonymizedTextSaysSoAsAnError()
+    {
+        var page = await RenderAsync(typeof(SampleReviewScreen), new Dictionary<string, object?>
+        {
+            ["Sample"] = Drawn(reviewed: 1),
+            ["Action"] = Action,
+            ["Result"] = SampleReviewScreen.NotPseudonymizedMark,
+        });
+
+        Assert.Equal("sem-pseudonimizado", SampleReviewScreen.NotPseudonymizedMark);
+        Assert.Contains("class=\"notice notice--error\" role=\"alert\"", page, StringComparison.Ordinal);
+        const string Refused = "O passo não foi feito: a amostra tem item sem texto pseudonimizado, e ele não pode ser marcado como revisado nem o lote aprovado. "
+            + "Confira o estado abaixo.";
+        Assert.Equal(1, page.Split(Refused).Length - 1);
+        Assert.DoesNotContain("o item não está na vez", page, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(2)]

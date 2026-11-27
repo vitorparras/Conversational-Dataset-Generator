@@ -22,17 +22,17 @@ rótulos de cada domínio (0013). Não é única entre domínios (fatia A, #108 
 **`pseudonymization`.** content.marker_in_use (marcador e tipo, único na instalação) e
 content.item_marker (item, marcador único e se é o autor), sob a política da 0006: o índice único
 recusa o número usado, sem ler outros domínios. Em claro (0003, linha 21). O marcador nunca sai de
-marker_in_use (CE006); em item_marker, um marcador novo ao item entra só se ganho na mesma
-transação (0057), e a linha sai só com item_emptied, item_resanitized ou o lote rejeitado (CE005).
+marker_in_use (CE006); em item_marker, um marcador novo ao item entra só se ganho na mesma transação
+(0057), e a linha sai só com item_emptied, item_resanitized ou o lote rejeitado (CE005).
 pseudonymized_text passa a bytea selada com a chave do item, `protected:texto-bruto` (0030, l. 24).
 O banco não lê o selado: a restrição adiada pseudonymized_needs_map exige no commit o mapa do item
 na mesma transação, e o gatilho do lote exige batch_pseudonymized no aceite. No lote aberto, gatilho
-e tela leem pelo escopo do sistema (batch_holds_pseudonymized, batch_marker_counts).
-
-Os passos novos: batch_pseudonymized, um por lote aceito com item pseudonimizado, gravado no aceite
-e na mesma transação, nunca antes do primeiro item; e o motivo pseudonym_of_removed, que rejeita o
-lote ao chegar entrada de outro destino. Ler um mapa usa reversal_entries_read, um por mapa. O
-esvaziamento zera o mapa (0010, linha 21) e apaga os marcadores; a reexecução da B só os guarda.
+e tela leem pelo escopo do sistema (batch_holds_pseudonymized, batch_marker_counts).  Os passos
+novos: batch_pseudonymized, um por lote aceito com item pseudonimizado, gravado no aceite e na mesma
+transação, nunca antes do primeiro item; e o motivo pseudonym_of_removed, que rejeita o lote ao
+chegar entrada de outro destino. Ler um mapa usa reversal_entries_read, um por mapa; a amostra lê o
+pseudonimizado sob pseudonymized_text_read, mesmo com a cadeia quebrada (#939). O esvaziamento zera
+o mapa (0010, linha 21) e apaga os marcadores; a reexecução da B só os guarda.
 
 **F3, `pseudonymization-wiring`.** marker_in_use ganha o lote; item_marker fica só com o único por
 (item, marcador). O marcador novo ao item vem do sorteio da transação ou do lote do item, nunca de

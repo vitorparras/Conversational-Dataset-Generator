@@ -48,7 +48,7 @@ removido sai inteira com ele, qualquer que seja o destino, num só marcador, o d
 **Gravador.** `ContentWriter.AddItemAsync` (linha 43) sela o sanitizado e o rastro com a finalidade
 do bruto, no mesmo `Insertion` (linhas 49 a 56), e grava a versão (0060). A submissão grava
 batch_sanitized ao fechar os itens. `BatchRegister` lê pela 0063 só as contagens por passo; o rastro
-segue cifrado (#93). A amostra lê pela 0059 da fase 3, que devolve a versão mais tratada.
+segue cifrado (#93). A amostra lê pela 202611261600 só o pseudonimizado (#939).
 
 ## Fatia E
 

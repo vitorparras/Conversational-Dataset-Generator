@@ -8,10 +8,12 @@
     <link rel="stylesheet" href="../../../../../core/src/Core.Host/Screens/screens.css" />
 </head>
 <!--
-    Protótipo da tela I4 (GET e POST /lotes/{id}/revisao) só com o que a fase 4 muda: todo item tem
-    o texto sanitizado, que é o que a revisão lê, com o marcador do tipo no lugar do que saiu e
-    a versão da lista de passos que o produziu. O texto bruto deixa de aparecer nesta tela. O resto
-    da tela (sorteio, ordem, reprovação, aprovação) é o da fase 3.
+    Protótipo da tela I4 (GET e POST /lotes/{id}/revisao) só com o que a fase 4 muda: a revisão lê
+    só o texto pseudonimizado, com o pseudônimo no lugar da pessoa, o marcador do tipo no lugar do
+    que a sanitização tirou e a versão da lista de passos que o produziu. O texto bruto e o
+    sanitizado não aparecem nesta tela. O item sem texto pseudonimizado não mostra texto, diz por
+    quê e não pode ser marcado como revisado; ainda pode reprovar o lote. O resto da tela (sorteio,
+    ordem, reprovação, aprovação) é o da fase 3.
     Na tela real só um estado aparece por vez; aqui os estados vêm em sequência, cada um na sua âncora.
     Os dados são sintéticos.
 -->
@@ -45,17 +47,18 @@
     </header>
     <main id="content" class="page" tabindex="-1">
         <h1>Revisão da amostra do lote 13</h1>
-        <p class="lead">Leia cada item da amostra, na ordem, e marque-o como revisado. O texto é o sanitizado: onde aparece um tipo entre colchetes, como [credencial] ou [dado], um valor saiu e nada dele ficou, nem um caractere; [documento] e [contato] chegam com a fatia D. Um dado pessoal em qualquer item reprova o lote inteiro. O resto da tela é o da <a href="../../003-ingestao/prototipos/revisao.html">fase 3</a>.</p>
+        <p class="lead">Leia cada item da amostra, na ordem, e marque-o como revisado. O texto é o pseudonimizado: cada pessoa aparece pelo pseudônimo, e onde aparece um tipo entre colchetes, como [credencial] ou [dado], um valor saiu e nada dele ficou, nem um caractere; [documento] e [contato] chegam com a fatia D. Um dado pessoal em qualquer item reprova o lote inteiro. O resto da tela é o da <a href="../../003-ingestao/prototipos/revisao.html">fase 3</a>.</p>
 
         <nav aria-label="Estados do protótipo">
             <ul>
-                <li><a href="#sanitizada">Amostra sanitizada, em revisão</a></li>
+                <li><a href="#sanitizada">Amostra pseudonimizada, em revisão</a></li>
+                <li><a href="#sem-pseudonimizado">Item sem texto pseudonimizado</a></li>
                 <li><a href="#versao-nova">Item lido depois de uma reexecução</a></li>
             </ul>
         </nav>
 
         <section id="sanitizada" aria-labelledby="sanitizada-estado">
-            <p id="sanitizada-estado"><strong>Estado: amostra sanitizada, em revisão.</strong> O item 1 já foi revisado; o item 2 é o próximo e tem dois valores removidos.</p>
+            <p id="sanitizada-estado"><strong>Estado: amostra pseudonimizada, em revisão.</strong> O item 1 já foi revisado; o item 2 é o próximo e tem dois valores removidos.</p>
             <section class="panel" aria-labelledby="sanitizada-resumo-titulo">
                 <h2 id="sanitizada-resumo-titulo">Amostra</h2>
                 <dl class="facts">
@@ -73,15 +76,15 @@
                 <li id="sanitizada-item-1" class="sample__item">
                     <section class="panel" aria-labelledby="sanitizada-item-1-titulo">
                         <h2 id="sanitizada-item-1-titulo">Item 1 de 3</h2>
-                        <p class="sample__version">Texto sanitizado pela versão VERSAO_3 da lista de passos.</p>
-                        <blockquote class="sample__text">Trecho sintético de conversa número 1. [NOME_1] pergunta quando o pedido sintético chega.</blockquote>
+                        <p class="sample__version">Texto pseudonimizado, sanitizado pela versão VERSAO_3 da lista de passos.</p>
+                        <blockquote class="sample__text">Trecho sintético de conversa número 1. PESSOA_48291307 pergunta quando o pedido sintético chega.</blockquote>
                         <span class="mark mark--good"><span class="mark__shape" aria-hidden="true">✓</span>Revisado</span>
                     </section>
                 </li>
                 <li id="sanitizada-item-2" class="sample__item">
                     <section class="panel" aria-labelledby="sanitizada-item-2-titulo">
                         <h2 id="sanitizada-item-2-titulo">Item 2 de 3</h2>
-                        <p class="sample__version">Texto sanitizado pela versão VERSAO_3 da lista de passos.</p>
+                        <p class="sample__version">Texto pseudonimizado, sanitizado pela versão VERSAO_3 da lista de passos.</p>
                         <blockquote class="sample__text">Trecho sintético de conversa número 2. O documento informado é [documento] e a senha enviada é [credencial]. A resposta sintética diz que o prazo é de dois dias.</blockquote>
                         <form class="form" method="get" action="revisao.html#versao-nova">
                             <div class="actions">
@@ -94,9 +97,29 @@
                 <li id="sanitizada-item-3" class="sample__item">
                     <section class="panel" aria-labelledby="sanitizada-item-3-titulo">
                         <h2 id="sanitizada-item-3-titulo">Item 3 de 3</h2>
-                        <p class="sample__version">Texto sanitizado pela versão VERSAO_3 da lista de passos.</p>
-                        <blockquote class="sample__text">Trecho sintético de conversa número 3. [NOME_2] agradece e encerra a conversa sintética.</blockquote>
+                        <p class="sample__version">Texto pseudonimizado, sanitizado pela versão VERSAO_3 da lista de passos.</p>
+                        <blockquote class="sample__text">Trecho sintético de conversa número 3. PESSOA_31057762 agradece e encerra a conversa sintética.</blockquote>
                         <p>Revise os itens anteriores primeiro.</p>
+                    </section>
+                </li>
+            </ol>
+        </section>
+        <hr />
+
+        <section id="sem-pseudonimizado" aria-labelledby="sem-pseudonimizado-estado">
+            <p id="sem-pseudonimizado-estado"><strong>Estado: item sem texto pseudonimizado.</strong> O item 2 não tem texto pseudonimizado, e a Curadoria tentou marcá-lo como revisado: a tela não mostra texto nenhum dele e não oferece marcá-lo como revisado; o lote não é aprovado enquanto ele estiver na amostra, e ainda pode ser reprovado.</p>
+            <div class="notice notice--error" role="alert">
+                <span class="notice__mark" aria-hidden="true">✕</span>
+                <p><span class="notice__kind">Erro:</span> O passo não foi feito: a amostra tem item sem texto pseudonimizado, e ele não pode ser marcado como revisado nem o lote aprovado. Confira o estado abaixo.</p>
+            </div>
+            <ol class="sample">
+                <li id="sem-pseudonimizado-item-2" class="sample__item">
+                    <section class="panel" aria-labelledby="sem-pseudonimizado-item-2-titulo">
+                        <h2 id="sem-pseudonimizado-item-2-titulo">Item 2 de 3</h2>
+                        <p class="sample__version">Este item não tem texto pseudonimizado, e por isso não é mostrado nem pode ser marcado como revisado.</p>
+                        <div class="actions">
+                            <a id="sem-pseudonimizado-achado-2" class="button button--danger" href="../../003-ingestao/prototipos/reprovacao.html">Achei dado pessoal</a>
+                        </div>
                     </section>
                 </li>
             </ol>
@@ -109,7 +132,7 @@
                 <li id="versao-nova-item-2" class="sample__item">
                     <section class="panel" aria-labelledby="versao-nova-item-2-titulo">
                         <h2 id="versao-nova-item-2-titulo">Item 2 de 3</h2>
-                        <p class="sample__version">Texto sanitizado pela versão VERSAO_4 da lista de passos.</p>
+                        <p class="sample__version">Texto pseudonimizado, sanitizado pela versão VERSAO_4 da lista de passos.</p>
                         <blockquote class="sample__text">Trecho sintético de conversa número 2. O documento informado é [documento] e a senha enviada é [credencial]. A resposta sintética diz que o prazo é de dois dias.</blockquote>
                         <form class="form" method="get" action="revisao.html#sanitizada">
                             <div class="actions">

@@ -58,6 +58,18 @@ internal static class ReviewStatements
         }
     }
 
+    /// <summary>Whether every item of the sample of the batch, from the first place to the one given, has the pseudonymized text that the review reads.</summary>
+    internal static async Task<bool> PseudonymizedAsync(CustodyScope scope, long batchId, int upTo, CancellationToken cancellationToken)
+    {
+        var command = scope.CreateCommand(ContentQueries.ReadSamplePseudonymized);
+        await using (command.ConfigureAwait(false))
+        {
+            _ = command.Parameters.Add(Id("id", batchId));
+            _ = command.Parameters.Add(new NpgsqlParameter("upto", NpgsqlDbType.Integer) { Value = upTo });
+            return await command.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false) is true;
+        }
+    }
+
     internal static async Task<BatchReview?> HeldAsync(CustodyScope scope, long batchId, CancellationToken cancellationToken)
     {
         var command = scope.CreateCommand(ContentQueries.ReadBatchReview);

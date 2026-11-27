@@ -53,5 +53,8 @@ public enum BatchReviewOutcome
 
     /// <summary>Some places of the sample were not marked yet, and a batch is approved only after the review of the whole sample.</summary>
     ReviewIncomplete,
+
+    /// <summary>An item of the sample has no pseudonymized text: it is not marked as reviewed, and the batch is not approved with it.</summary>
+    NotPseudonymized,
 }
 

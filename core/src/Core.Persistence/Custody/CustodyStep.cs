@@ -167,4 +167,7 @@ public enum CustodyStep
 
     /// <summary>The revelation was denied to who asked: the authorization expired, was used, or the item was emptied; the item is the authorization, with no reference.</summary>
     ReversalDenied,
+
+    /// <summary>The pseudonymized text of an item was read, recorded before the text is opened.</summary>
+    PseudonymizedTextRead,
 }

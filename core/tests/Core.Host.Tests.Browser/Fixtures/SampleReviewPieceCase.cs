@@ -50,7 +50,7 @@ internal static class SampleReviewPieceCase
         var approved = state == "aprovada";
         var rejected = state == "reprovada";
         var reviewed = state switch { "aprovada" => Items, "reprovada" => 2, _ => ReviewedIn(state) };
-        var items = Enumerable.Range(1, Items).Select(position => new SampleReviewScreen.Item(position, TextOf(position), position != 4, position <= reviewed)).ToList();
+        var items = Enumerable.Range(1, Items).Select(position => new SampleReviewScreen.Item(position, TextOf(position), position <= reviewed)).ToList();
         SampleReviewScreen.Approval? approval = approved ? new("zqx-curadoria", new DateTimeOffset(2026, 11, 9, 9, 30, 0, TimeSpan.Zero), "amostra-41") : null;
         return ScreenResult.Of(context, typeof(SampleReviewScreen), SampleReviewScreen.Title, new Dictionary<string, object?>(StringComparer.Ordinal)
         {

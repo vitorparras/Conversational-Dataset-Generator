@@ -48,6 +48,21 @@ internal static class IngestionWorld
             ("domain", domain),
             ("batch", batch)))!;
 
+    /// <summary>
+    /// The statement that adds an item with its pseudonymized text, sealed as <c>b2</c>, and the map of the item in the same statement, as the database asks of a pseudonymized item;
+    /// the raw text is <c>a1</c>, and there is no sanitized text.
+    /// </summary>
+    public const string PseudonymizedItem =
+        "WITH item AS (INSERT INTO content.item_text (domain_id, batch_id, raw_text, pseudonymized_text, dek_epoch, dek_wrapped) "
+        + "VALUES (@domain, @batch, decode('a1', 'hex'), decode('b2', 'hex'), 1, decode('c3', 'hex')) RETURNING id, domain_id, batch_id), "
+        + "map AS (INSERT INTO content.reversal_map (domain_id, batch_id, item_id, entries, dek_epoch, dek_wrapped) "
+        + "SELECT domain_id, batch_id, id, decode('06', 'hex'), 1, decode('07', 'hex') FROM item) "
+        + "SELECT id FROM item";
+
+    /// <summary>Adds an item with its pseudonymized text and its map to the batch, which the review of the sample reads and lets be marked, and answers its identifier.</summary>
+    public static async Task<long> AddPseudonymizedItemAsync(BatchesWorld world, long batch) =>
+        (long)(await world.InDomainAsync(Domain, PseudonymizedItem, ("domain", Domain), ("batch", batch)))!;
+
     /// <summary>Opens a batch of the domain for a file whose digest is the digit repeated, and answers its identifier, after judging that it opened.</summary>
     public static async Task<long> OpenFileAsync(BatchesWorld world, int domain, char digit)
     {

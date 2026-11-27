@@ -46,13 +46,45 @@ public sealed class SampleReviewScreenTests
     }
 
     [Fact]
-    public async Task EachItemShowsTheMostTreatedVersionThatExistsAndSaysWhichItIs()
+    public async Task EachItemShowsItsPseudonymizedTextAndSaysWhichVersionItIs()
     {
-        var page = await ReviewAsync(Drawn(reviewed: 0));
+        var page = await RenderAsync(typeof(SampleReviewScreen), new Dictionary<string, object?> { ["Sample"] = Drawn(reviewed: 0), ["Action"] = Action, ["Version"] = "zqx-v7" });
 
-        Assert.Contains("zqx-texto-sanitizado-1", page, StringComparison.Ordinal);
-        Assert.Contains(SampleTexts.VersionOf(cleaned: true), page, StringComparison.Ordinal);
-        Assert.Contains(SampleTexts.VersionOf(cleaned: false), page, StringComparison.Ordinal);
+        Assert.Contains("zqx-texto-pseudonimizado-1", page, StringComparison.Ordinal);
+        Assert.Equal(3, page.Split("Texto pseudonimizado, sanitizado pela versão zqx-v7 da lista de passos.").Length - 1);
+        Assert.DoesNotContain("Texto bruto", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("Texto sanitizado", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AnItemWithoutThePseudonymizedTextSaysWhyItShowsNoTextAndCanOnlyBeFoundAgainst()
+    {
+        var drawn = Drawn(reviewed: 1);
+        var page = await ReviewAsync(drawn with { Items = [drawn.Items[0], drawn.Items[1] with { Text = null }, drawn.Items[2]] });
+
+        Assert.Equal(1, page.Split("Este item não tem texto pseudonimizado, e por isso não é mostrado nem pode ser marcado como revisado.").Length - 1);
+        Assert.DoesNotContain("zqx-texto-pseudonimizado-2", page, StringComparison.Ordinal);
+        Assert.Equal(2, page.Split("<blockquote").Length - 1);
+        Assert.DoesNotContain($"{Action}/itens/2/revisado", page, StringComparison.Ordinal);
+        Assert.Contains($"href=\"{Action}/itens/2/achado\"", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AStepRefusedForAnItemWithoutThePseudonymizedTextSaysSoAsAnError()
+    {
+        var page = await RenderAsync(typeof(SampleReviewScreen), new Dictionary<string, object?>
+        {
+            ["Sample"] = Drawn(reviewed: 1),
+            ["Action"] = Action,
+            ["Result"] = SampleReviewScreen.NoTextMark,
+        });
+
+        Assert.Equal("sem-pseudonimizado", SampleReviewScreen.NoTextMark);
+        Assert.Contains("class=\"notice notice--error\" role=\"alert\"", page, StringComparison.Ordinal);
+        const string Refused = "O passo não foi feito: a amostra tem item sem texto pseudonimizado, e ele não pode ser marcado como revisado nem o lote aprovado. "
+            + "Confira o estado abaixo.";
+        Assert.Equal(1, page.Split(Refused).Length - 1);
+        Assert.DoesNotContain("o item não está na vez", page, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -172,9 +204,9 @@ public sealed class SampleReviewScreenTests
         "zqx-dominio",
         3,
         [
-            new(1, "zqx-texto-sanitizado-1", Cleaned: true, Reviewed: reviewed >= 1),
-            new(2, "zqx-texto-bruto-2", Cleaned: false, Reviewed: reviewed >= 2),
-            new(3, "zqx-texto-sanitizado-3", Cleaned: true, Reviewed: reviewed >= 3),
+            new(1, "zqx-texto-pseudonimizado-1", Reviewed: reviewed >= 1),
+            new(2, "zqx-texto-pseudonimizado-2", Reviewed: reviewed >= 2),
+            new(3, "zqx-texto-pseudonimizado-3", Reviewed: reviewed >= 3),
         ],
         null);
 

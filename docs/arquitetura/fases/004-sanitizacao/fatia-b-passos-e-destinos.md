@@ -6,10 +6,11 @@
 A sanitização roda síncrona na submissão, antes de gravar o item e, portanto, antes da amostra. Cada
 item nasce com o sanitizado e o rastro, cifrados, e com a versão da lista de passos. A tela do lote
 mostra a versão e só as contagens por passo; o rastro com as posições fica cifrado. A revisão por
-amostra lê o sanitizado, com o marcador no lugar do removido: o tipo, pela tabela da fatia B dos
-[contratos](contratos.md), nunca um caractere do original. Sozinha, a fatia só gera [credencial] e
-[dado]; [documento] e [contato] chegam com a fatia D. Os protótipos são
-`lote.html` e `revisao.html`, em [protótipos](prototipos/index.html).
+amostra lê só o pseudonimizado (#939), com o marcador no lugar do removido: o tipo, pela tabela da
+fatia B dos [contratos](contratos.md), nunca um caractere do original. O item sem pseudonimizado não
+mostra texto, a tela diz por quê, e ele não é marcado como revisado nem deixa o lote ser aprovado.
+Sozinha, a fatia só gera [credencial] e [dado]; [documento] e [contato] chegam com a fatia D. Os
+protótipos são `lote.html` e `revisao.html`, em [protótipos](prototipos/index.html).
 
 ## Critérios de aceite
 

@@ -9,15 +9,16 @@ using Core.Persistence.Tests.Fixtures;
 namespace Core.Host.Tests;
 
 /// <summary>
-/// The review of the sample reads the sanitized text of each item (#842, issue 98): only whoever the domain of the batch is granted to reads it, the read is recorded in the chain,
-/// every item of the batch already has its sanitized text when the sample is drawn, and what the sanitization removed is shown by the marker of its kind.
+/// The review of the sample reads the pseudonymized text of each item, which the sanitization treated first (#842, issues 98 and 939): only whoever the domain of the batch is granted to
+/// reads it, the read is recorded in the chain, every item of the batch already has its sanitized text when the sample is drawn, and what the sanitization removed is shown by the marker
+/// of its kind.
 /// </summary>
 public sealed class SampleReviewSanitizedTests
 {
-    private const string Read = "sanitized_text_read,content_read";
+    private const string Read = "pseudonymized_text_read,content_read";
 
     [DatabaseFact]
-    public async Task SanitizedTextIsReadOnlyWithTheGrantAndTheReadIsRecorded()
+    public async Task PseudonymizedTextIsReadOnlyWithTheGrantAndTheReadIsRecorded()
     {
         await using var world = await SampleReviewWorld.StartAsync();
         await world.DrawAndReviewAsync(reviewed: 0);
@@ -44,8 +45,8 @@ public sealed class SampleReviewSanitizedTests
             ["4", "0"],
             [.. await world.Submissions.StoredAsync("SELECT count(*)::text FROM content.item_text"),
              .. await world.Submissions.StoredAsync("SELECT count(*)::text FROM content.item_text WHERE sanitized_text IS NULL")]);
-        Assert.Equal(2, Occurrences(page.Page, SampleTexts.VersionOf(cleaned: true, CompositionRoot.StepsOf().Version)));
-        Assert.DoesNotContain(SampleTexts.VersionOf(cleaned: false), page.Page, StringComparison.Ordinal);
+        Assert.Equal(2, Occurrences(page.Page, SampleTexts.VersionOf(CompositionRoot.StepsOf().Version)));
+        Assert.DoesNotContain(SampleTexts.Absent, page.Page, StringComparison.Ordinal);
     }
 
     [DatabaseFact]
@@ -56,7 +57,7 @@ public sealed class SampleReviewSanitizedTests
 
         var page = await world.GetAsync(world.ReviewRoute, world.Curator);
 
-        Assert.Equal(2, Occurrences(page.Page, $"Texto sanitizado pela versão {CompositionRoot.StepsOf().Version} da lista de passos."));
+        Assert.Equal(2, Occurrences(page.Page, $"Texto pseudonimizado, sanitizado pela versão {CompositionRoot.StepsOf().Version} da lista de passos."));
     }
 
     [DatabaseFact]
@@ -81,7 +82,7 @@ public sealed class SampleReviewSanitizedTests
     }
 
     [DatabaseFact]
-    public async Task SampleReviewShowsTheSanitizedTextWithTheTypedMarker()
+    public async Task SampleReviewShowsThePseudonymizedTextWithTheTypedMarkerOfTheSanitization()
     {
         await using var world = await SampleReviewWorld.StartAsync(recognizer: AnsweringRecognizer.Finding("CREDENTIAL"));
         await world.DrawAndReviewAsync(reviewed: 0);
@@ -91,7 +92,7 @@ public sealed class SampleReviewSanitizedTests
         Assert.Equal(HttpStatusCode.OK, page.Status);
         Assert.Equal(2, Occurrences(page.Page, "[credencial]QXTEXTO"));
         Assert.DoesNotContain("ZQXTEXTO", page.Page, StringComparison.Ordinal);
-        Assert.Contains(SampleTexts.VersionOf(cleaned: true, CompositionRoot.StepsOf().Version), page.Page, StringComparison.Ordinal);
+        Assert.Contains(SampleTexts.VersionOf(CompositionRoot.StepsOf().Version), page.Page, StringComparison.Ordinal);
     }
 
     /// <summary>Who read which text of the items, and why, one line per read, as the owner sees the chain.</summary>
